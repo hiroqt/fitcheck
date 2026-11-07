@@ -151,6 +151,16 @@ describe("3D GLB validation and generation", () => {
     });
     expect(validateGlbBuffer(webpOverride)).toContain("4096 × 4096");
 
+    const basisuFallback = makeGlb({
+      asset: { version: "2.0" },
+      images: [
+        { uri: embeddedImageUri("image/png", pngHeader(5000, 4000)) },
+        { uri: embeddedImageUri("image/png", pngHeader(1, 1)) },
+      ],
+      textures: [{ source: 0, extensions: { KHR_texture_basisu: { source: 1 } } }],
+    });
+    expect(validateGlbBuffer(basisuFallback)).toContain("4096 × 4096");
+
     const invalidSampler = makeGlb({
       asset: { version: "2.0" },
       images: [{ uri: repeatedDataUri }],

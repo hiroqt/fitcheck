@@ -75,7 +75,7 @@ export function validateGlbBuffer(buffer: ArrayBuffer): string | null {
     textures?: Array<{
       source?: number;
       sampler?: number;
-      extensions?: { KHR_texture_basisu?: { source?: number }; EXT_texture_webp?: { source?: number } };
+      extensions?: { EXT_texture_webp?: { source?: number } };
     }>;
     samplers?: unknown[];
   };
@@ -180,8 +180,7 @@ export function validateGlbBuffer(buffer: ArrayBuffer): string | null {
   let totalTexturePixels = 0;
   const textureCacheKeys = new Set<string>();
   for (const texture of textures) {
-    const imageIndex = texture.extensions?.EXT_texture_webp?.source ??
-      texture.extensions?.KHR_texture_basisu?.source ?? texture.source;
+    const imageIndex = texture.extensions?.EXT_texture_webp?.source ?? texture.source;
     if (imageIndex === undefined || imagePixels[imageIndex] === undefined) {
       return "GLB texture references an invalid embedded image.";
     }
