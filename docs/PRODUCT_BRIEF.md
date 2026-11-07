@@ -1,5 +1,7 @@
 # FitCheck Product Brief
 
+**Scope update, 2026-11-07:** The user has specified a worn-garment experience with articulated sleeves, hand/forearm occlusion, replacement of existing clothing, both flat-lay and model-worn inputs, local processing, 3–5-second preparation, and 24–30 FPS. See the [accepted brief and feasibility gate](TRY_ON_FEASIBILITY.md). The sections below describe the existing overlay prototype; they do not establish that the revised requirements are implemented. The new pipeline has not passed feasibility selection.
+
 ## Problem
 
 Online shoppers often cannot picture a clothing item on their own body. Retailer product photos show garments on models, and product selection spans many sites.
@@ -21,7 +23,7 @@ Let a shopper bring a garment image from any shop into a simple try-on experienc
 - A responsive web application with one garment preview at a time.
 - Initially supports upper-body garment overlays using transparent/cut-out garment imagery.
 - Camera start/stop, garment replacement/removal, search/filter over currently loaded local items when present, upload validation, and useful error states.
-- Browser pose alignment using shoulders and an estimated neck anchor, with a shopper-adjustable garment neckline point. This remains an illustrative 2D overlay and cannot promise 99%/100% fit accuracy.
+- Browser-local pose alignment using shoulder and plausible hip landmarks, with a shoulder-based fallback when hips are outside the frame. Garments use thin-plate-spline control-point warping in 2D, with garment-alpha hem width informing lower torso controls; this remains illustrative and cannot simulate cloth, sleeve occlusion, or realistic folds.
 
 ## Not in MVP
 

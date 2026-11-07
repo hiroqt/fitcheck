@@ -1,5 +1,7 @@
 # Product Requirements Document
 
+**Revision boundary, 2026-11-07:** This document describes the existing overlay prototype. The user-confirmed replacement requirements and timing targets are recorded in [TRY_ON_FEASIBILITY.md](TRY_ON_FEASIBILITY.md), which supersedes this document's cutout-only and 15-FPS target for the proposed next version. Feasibility has not passed; existing implementation capabilities must not be presented as meeting that new contract.
+
 ## 1. Product summary
 
 FitCheck is a browser-first live try-on widget for shoppers who want to preview a garment from any retailer on their own webcam image. The shopper supplies the garment image; FitCheck does not need access to the retailer's page or catalog.
@@ -29,7 +31,7 @@ FitCheck is a browser-first live try-on widget for shoppers who want to preview 
 - Validate file type, decoded dimensions, and file size before using it.
 - Preview and replace/remove the selected garment.
 - Start/stop the webcam with explicit user action and browser permission.
-- Detect a single visible upper-body pose and place/scale/rotate a garment overlay using shoulder/hip landmarks.
+- Detect a single visible upper-body pose and map a selected garment across the torso using confidence-gated shoulder and hip landmarks with smoothed tracking.
 - Show clear permission, loading, no-pose, unsupported-image, and runtime failure states.
 - Explain local processing, supported images, and visual-preview limits in the UI.
 
@@ -56,7 +58,7 @@ FitCheck is a browser-first live try-on widget for shoppers who want to preview 
 
 - **FR-06:** As a shopper, I can start the live preview after an explicit action and browser camera permission.
 - **FR-07:** As a shopper, I can stop the preview; all acquired media tracks stop promptly.
-- **FR-08:** When one upper body is sufficiently visible, the garment overlay follows shoulder width/tilt and an estimated neck anchor; shoppers can tune where the garment neckline sits on the selected image.
+- **FR-08:** When one upper body is sufficiently visible, the garment is cropped to its visible content, its neckline is estimated automatically, and a 2D mesh follows the torso landmarks without covering the face.
 - **FR-09:** When pose landmarks are absent or low-confidence, FitCheck pauses/hides the overlay and tells me how to recover; it does not keep presenting a stale position as current.
 - **FR-10:** As a shopper, I receive a clear recovery message when camera access is denied, missing, already in use, or unsupported.
 - **FR-11:** Switching or removing a garment updates or clears the overlay without restarting the camera.
@@ -88,7 +90,7 @@ FitCheck is a browser-first live try-on widget for shoppers who want to preview 
 ## 7. Acceptance criteria
 
 1. User selects a supported garment image; the UI shows it before camera access.
-2. Starting camera requests permission; granting it shows the live image and pose-aligned garment overlay, with a neckline control for image-specific calibration.
+2. Starting camera requests permission; granting it shows a locally rendered, torso-mapped garment overlay that keeps the face uncovered.
 3. Replacing/clearing the image updates/clears the overlay while the camera remains under explicit control.
 4. Stopping camera stops every media track and clears live rendering.
 5. Denied permission, unavailable device, unsupported file, invalid image, and no-pose conditions show recovery guidance.
