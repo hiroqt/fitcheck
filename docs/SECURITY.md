@@ -34,7 +34,7 @@ The browser, its same-origin application code, the hosting origin, package/model
 
 ### Uploaded garment files
 
-- Accept only explicitly supported raster formats (PNG, JPEG, and WebP up to 10 MiB / 4096×4096) or self-contained binary glTF 2.0 models (`.glb` up to 15 MiB); reject SVG, HTML, unknown formats, and any `.glb` containing external `buffers[].uri` or `images[].uri` references so uploaded 3D models cannot trigger outbound network requests.
+- Accept only explicitly supported raster formats (PNG, JPEG, and WebP up to 10 MiB / 4096×4096) or self-contained binary glTF 2.0 models (`.glb` up to 15 MiB); reject SVG, HTML, unknown formats, external GLB buffer/image URIs, and GLBs whose combined embedded texture dimensions exceed 4096 × 4096 pixels before parsing.
 - Validate declared type and decoded type, plus maximum file size and image dimensions, before allocating a large canvas or processing pixels. Show a useful error and allow replacement.
 - Decode locally, downscale to a bounded working size, and release object URLs, image bitmaps, and temporary canvas resources when the item is replaced or cleared.
 - Treat filenames and image metadata as untrusted. Do not render filenames as HTML, fetch embedded URLs, or execute image-provided content.

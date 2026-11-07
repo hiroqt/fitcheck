@@ -39,6 +39,12 @@ Add a lesson only when an implementation result, scanner output, or user correct
 - **Evidence:** Sample loads already used a request sequence, while file uploads did not check whether a newer sample/upload had superseded them after decode.
 - **Action:** Give each upload a sequence ID and verify it after each asynchronous decode before changing renderer or selection state; suppress errors from stale operations.
 
+## 2026-11-08 — Bound embedded GLB texture dimensions before parsing
+
+- **Trigger:** Independent review found that a small uploaded GLB could contain a highly compressed image with excessive decoded dimensions.
+- **Evidence:** GLB byte-size validation did not bound embedded image pixel counts before Three.js parsing.
+- **Action:** Read PNG/JPEG/WebP dimensions from embedded data URIs or GLB buffer views and reject models whose combined decoded texture budget exceeds 4096 × 4096 pixels before calling `GLTFLoader`; cover URI, buffer-view, and aggregate-size cases with regression tests.
+
 ## 2026-11-07 — Shop image access and clean overlays
 
 - **Trigger:** Scope discovery for cross-retailer try-on.

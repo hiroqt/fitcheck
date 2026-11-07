@@ -16,6 +16,41 @@ import {
 import type { GarmentPlacement, NormalizedLandmark } from "./garment";
 import { constructBodyProxy3D, estimateBodyFrame3D } from "./body3d";
 
+function makeGlb(json: Record<string, unknown>, binary?: Uint8Array): ArrayBuffer {
+  const encodedJson = new TextEncoder().encode(JSON.stringify(json));
+  const jsonLength = Math.ceil(encodedJson.length / 4) * 4;
+  const binaryLength = binary ? Math.ceil(binary.length / 4) * 4 : 0;
+  const buffer = new ArrayBuffer(20 + jsonLength + (binary ? 8 + binaryLength : 0));
+  const view = new DataView(buffer);
+  view.setUint32(0, 0x46546c67, true);
+  view.setUint32(4, 2, true);
+  view.setUint32(8, buffer.byteLength, true);
+  view.setUint32(12, jsonLength, true);
+  view.setUint32(16, 0x4e4f534a, true);
+  const jsonBytes = new Uint8Array(buffer, 20, jsonLength);
+  jsonBytes.fill(0x20);
+  jsonBytes.set(encodedJson);
+  if (binary) {
+    const offset = 20 + jsonLength;
+    view.setUint32(offset, binaryLength, true);
+    view.setUint32(offset + 4, 0x004e4942, true);
+    new Uint8Array(buffer, offset + 8, binaryLength).set(binary);
+  }
+  return buffer;
+}
+
+function pngHeader(width: number, height: number): Uint8Array {
+  const bytes = new Uint8Array(24);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(0, 0x89504e47);
+  view.setUint32(4, 0x0d0a1a0a);
+  view.setUint32(8, 13);
+  view.setUint32(12, 0x49484452);
+  view.setUint32(16, width);
+  view.setUint32(20, height);
+  return bytes;
+}
+
 describe("3D GLB validation and generation", () => {
   it("accepts valid .glb file metadata and rejects invalid extensions or oversized files", () => {
     expect(validateGlbFile({ name: "jacket.glb", type: "model/gltf-binary", size: 2048 })).toBeNull();
@@ -48,6 +83,31 @@ describe("3D GLB validation and generation", () => {
     new Uint8Array(evilGlb, 20).set(jsonBytes);
 
     expect(validateGlbBuffer(evilGlb)).toContain("external");
+  });
+
+  it("rejects embedded image textures above the decoded pixel budget before GLB parsing", () => {
+    const oversizedTexture = pngHeader(5000, 4000);
+    const dataUri = `data:image/png;base64,${btoa(String.fromCharCode(...oversizedTexture))}`;
+    const oversized = makeGlb({ asset: { version: "2.0" }, images: [{ uri: dataUri }] });
+    expect(validateGlbBuffer(oversized)).toContain("4096 × 4096");
+
+    const boundedTexture = pngHeader(1024, 1024);
+    const boundedDataUri = `data:image/png;base64,${btoa(String.fromCharCode(...boundedTexture))}`;
+    expect(validateGlbBuffer(makeGlb({ asset: { version: "2.0" }, images: [{ uri: boundedDataUri }] }))).toBeNull();
+
+    const repeatedTextures = makeGlb({
+      asset: { version: "2.0" },
+      images: Array.from({ length: 5 }, () => ({ uri: `data:image/png;base64,${btoa(String.fromCharCode(...pngHeader(2048, 2048)))}` })),
+    });
+    expect(validateGlbBuffer(repeatedTextures)).toContain("combined textures");
+
+    const bufferViewGlb = makeGlb({
+      asset: { version: "2.0" },
+      buffers: [{ byteLength: boundedTexture.length }],
+      bufferViews: [{ buffer: 0, byteLength: boundedTexture.length }],
+      images: [{ bufferView: 0, mimeType: "image/png" }],
+    }, boundedTexture);
+    expect(validateGlbBuffer(bufferViewGlb)).toBeNull();
   });
 
   it("parses generated .glb garment presets into Three.js groups with Torso, SleeveLeft, and SleeveRight nodes", async () => {

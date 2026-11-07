@@ -8,9 +8,12 @@ import {
 import type { BodyProxy3D, Capsule3D } from "./body3d.ts";
 
 export const MAX_GLB_BYTES = 15 * 1024 * 1024;
+const MAX_GLB_TEXTURE_PIXELS = 4096 * 4096;
 const GLB_MAGIC = 0x46546c67; // "glTF"
 const GLB_JSON_CHUNK = 0x4e4f534a; // "JSON"
 const GLB_BIN_CHUNK = 0x004e4942; // "BIN\0"
+const GLB_TEXTURE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+const JPEG_START_OF_FRAME_MARKERS = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]);
 
 export type Garment3DPreset = "soft-tee" | "denim-jacket" | "linen-shirt";
 
@@ -66,7 +69,8 @@ export function validateGlbBuffer(buffer: ArrayBuffer): string | null {
   let gltfJson: {
     asset?: { version?: string };
     buffers?: Array<{ uri?: string }>;
-    images?: Array<{ uri?: string }>;
+    images?: Array<{ uri?: string; bufferView?: number; mimeType?: string }>;
+    bufferViews?: Array<{ buffer?: number; byteOffset?: number; byteLength?: number }>;
   };
   try {
     const jsonText = new TextDecoder().decode(new Uint8Array(buffer, 20, jsonChunkLength));
@@ -86,7 +90,128 @@ export function validateGlbBuffer(buffer: ArrayBuffer): string | null {
     return "Rejected GLB with external buffer or texture URI to keep processing strictly local.";
   }
 
+  const binChunkOffset = 20 + jsonChunkLength;
+  let binOffset = -1;
+  let binLength = 0;
+  for (let offset = binChunkOffset; offset + 8 <= buffer.byteLength;) {
+    const chunkLength = view.getUint32(offset, true);
+    const chunkType = view.getUint32(offset + 4, true);
+    if (offset + 8 + chunkLength > buffer.byteLength) return "Corrupted GLB chunk header.";
+    if (chunkType === GLB_BIN_CHUNK) {
+      binOffset = offset + 8;
+      binLength = chunkLength;
+      break;
+    }
+    offset += 8 + chunkLength;
+  }
+
+  let totalTexturePixels = 0;
+  for (const image of gltfJson.images ?? []) {
+    let imageBytes: Uint8Array | undefined;
+    let mimeType = image.mimeType;
+    if (image.uri?.startsWith("data:")) {
+      const comma = image.uri.indexOf(",");
+      const header = comma >= 0 ? image.uri.slice(5, comma) : "";
+      if (!header.endsWith(";base64")) return "GLB textures must use a supported base64 image.";
+      mimeType = header.slice(0, -7).toLowerCase();
+      if (!GLB_TEXTURE_MIME_TYPES.has(mimeType)) {
+        return "GLB textures must be PNG, JPEG, or WebP.";
+      }
+      try {
+        const decoded = atob(image.uri.slice(comma + 1));
+        imageBytes = Uint8Array.from(decoded, (char) => char.charCodeAt(0));
+      } catch {
+        return "GLB texture data could not be decoded.";
+      }
+    } else if (image.bufferView !== undefined) {
+      const bufferView = gltfJson.bufferViews?.[image.bufferView];
+      const byteOffset = bufferView?.byteOffset ?? 0;
+      const byteLength = bufferView?.byteLength ?? 0;
+      if (
+        !bufferView ||
+        (bufferView.buffer !== undefined && bufferView.buffer !== 0) ||
+        binOffset < 0 ||
+        byteLength <= 0 ||
+        byteOffset + byteLength > binLength
+      ) {
+        return "GLB texture buffer is invalid.";
+      }
+      imageBytes = new Uint8Array(buffer, binOffset + byteOffset, byteLength);
+    } else {
+      return "GLB textures must be embedded in the model.";
+    }
+
+    const dimensions = imageBytes && getEmbeddedImageDimensions(imageBytes, mimeType);
+    if (!dimensions || dimensions.width < 1 || dimensions.height < 1) {
+      return "GLB contains an unsupported or invalid embedded texture.";
+    }
+    totalTexturePixels += dimensions.width * dimensions.height;
+    if (totalTexturePixels > MAX_GLB_TEXTURE_PIXELS) {
+      return "Choose a GLB whose combined textures stay within a 4096 × 4096 pixel budget.";
+    }
+  }
+
   return null;
+}
+
+function getEmbeddedImageDimensions(
+  bytes: Uint8Array,
+  mimeType?: string,
+): { width: number; height: number } | undefined {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (
+    mimeType === "image/png" &&
+    bytes.byteLength >= 24 &&
+    view.getUint32(0) === 0x89504e47 &&
+    view.getUint32(4) === 0x0d0a1a0a &&
+    view.getUint32(8) === 13 &&
+    view.getUint32(12) === 0x49484452
+  ) {
+    return { width: view.getUint32(16), height: view.getUint32(20) };
+  }
+  if (mimeType === "image/jpeg" && bytes[0] === 0xff && bytes[1] === 0xd8) {
+    for (let offset = 2; offset + 4 < bytes.length;) {
+      if (bytes[offset] !== 0xff) {
+        offset++;
+        continue;
+      }
+      while (bytes[offset] === 0xff) offset++;
+      const marker = bytes[offset++];
+      if (marker === 0xd8 || marker === 0xd9 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+      if (offset + 2 > bytes.length) return undefined;
+      const segmentLength = view.getUint16(offset);
+      if (segmentLength < 2 || offset + segmentLength > bytes.length) return undefined;
+      if (JPEG_START_OF_FRAME_MARKERS.has(marker)) {
+        if (segmentLength < 7) return undefined;
+        return { height: view.getUint16(offset + 3), width: view.getUint16(offset + 5) };
+      }
+      offset += segmentLength;
+    }
+  }
+  if (
+    mimeType === "image/webp" &&
+    bytes.byteLength >= 30 &&
+    view.getUint32(0, true) === 0x46464952 &&
+    view.getUint32(8, true) === 0x50424557
+  ) {
+    const chunk = String.fromCharCode(bytes[12], bytes[13], bytes[14], bytes[15]);
+    if (chunk === "VP8X") {
+      const width = 1 + bytes[24] + (bytes[25] << 8) + (bytes[26] << 16);
+      const height = 1 + bytes[27] + (bytes[28] << 8) + (bytes[29] << 16);
+      return { width, height };
+    }
+    if (chunk === "VP8 " && bytes[23] === 0x9d && bytes[24] === 0x01 && bytes[25] === 0x2a) {
+      const width = view.getUint16(26, true) & 0x3fff;
+      const height = view.getUint16(28, true) & 0x3fff;
+      return { width, height };
+    }
+    if (chunk === "VP8L" && bytes[20] === 0x2f) {
+      const width = 1 + bytes[21] + ((bytes[22] & 0x3f) << 8);
+      const height = 1 + ((bytes[22] >> 6) & 0x03) + (bytes[23] << 2) + ((bytes[24] & 0x0f) << 10);
+      return { width, height };
+    }
+  }
+  return undefined;
 }
 
 interface MeshGeometryData {
