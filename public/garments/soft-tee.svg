@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 560">
+  <defs>
+    <linearGradient id="fabric" x2="0.9" y2="1"><stop stop-color="#b8d4c8"/><stop offset="1" stop-color="#7fa597"/></linearGradient>
+  </defs>
+  <path d="M154 64 196 44h88l42 20 105 66-56 104-54-30v300H159V204l-54 30-56-104z" fill="url(#fabric)" stroke="#456f64" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M196 44c3 39 19 63 44 63s41-24 44-63" fill="none" stroke="#456f64" stroke-width="8"/>
+  <path d="M174 240v228m132-228v228" stroke="#ffffff" stroke-opacity=".25" stroke-width="5"/>
+</svg>
