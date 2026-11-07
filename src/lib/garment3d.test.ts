@@ -88,24 +88,50 @@ describe("3D GLB validation and generation", () => {
   it("rejects embedded image textures above the decoded pixel budget before GLB parsing", () => {
     const oversizedTexture = pngHeader(5000, 4000);
     const dataUri = `data:image/png;base64,${btoa(String.fromCharCode(...oversizedTexture))}`;
-    const oversized = makeGlb({ asset: { version: "2.0" }, images: [{ uri: dataUri }] });
+    const oversized = makeGlb({
+      asset: { version: "2.0" },
+      images: [{ uri: dataUri }],
+      textures: [{ source: 0 }],
+    });
     expect(validateGlbBuffer(oversized)).toContain("4096 × 4096");
 
     const boundedTexture = pngHeader(1024, 1024);
     const boundedDataUri = `data:image/png;base64,${btoa(String.fromCharCode(...boundedTexture))}`;
-    expect(validateGlbBuffer(makeGlb({ asset: { version: "2.0" }, images: [{ uri: boundedDataUri }] }))).toBeNull();
+    expect(validateGlbBuffer(makeGlb({
+      asset: { version: "2.0" },
+      images: [{ uri: boundedDataUri }],
+      textures: [{ source: 0 }],
+    }))).toBeNull();
 
+    const texture2048 = pngHeader(2048, 2048);
+    const repeatedDataUri = `data:image/png;base64,${btoa(String.fromCharCode(...texture2048))}`;
     const repeatedTextures = makeGlb({
       asset: { version: "2.0" },
-      images: Array.from({ length: 5 }, () => ({ uri: `data:image/png;base64,${btoa(String.fromCharCode(...pngHeader(2048, 2048)))}` })),
+      images: [{ uri: repeatedDataUri }],
+      textures: Array.from({ length: 5 }, (_, sampler) => ({ source: 0, sampler })),
     });
     expect(validateGlbBuffer(repeatedTextures)).toContain("combined textures");
+
+    const duplicateSamplerTextures = makeGlb({
+      asset: { version: "2.0" },
+      images: [{ uri: repeatedDataUri }],
+      textures: Array.from({ length: 5 }, () => ({ source: 0, sampler: 0 })),
+    });
+    expect(validateGlbBuffer(duplicateSamplerTextures)).toBeNull();
+
+    const tooManyTextureEntries = makeGlb({
+      asset: { version: "2.0" },
+      images: [{ uri: boundedDataUri }],
+      textures: Array.from({ length: 65 }, () => ({ source: 0 })),
+    });
+    expect(validateGlbBuffer(tooManyTextureEntries)).toContain("64 textures");
 
     const bufferViewGlb = makeGlb({
       asset: { version: "2.0" },
       buffers: [{ byteLength: boundedTexture.length }],
       bufferViews: [{ buffer: 0, byteLength: boundedTexture.length }],
       images: [{ bufferView: 0, mimeType: "image/png" }],
+      textures: [{ source: 0 }],
     }, boundedTexture);
     expect(validateGlbBuffer(bufferViewGlb)).toBeNull();
   });

@@ -14,6 +14,7 @@ const GLB_JSON_CHUNK = 0x4e4f534a; // "JSON"
 const GLB_BIN_CHUNK = 0x004e4942; // "BIN\0"
 const GLB_TEXTURE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 const JPEG_START_OF_FRAME_MARKERS = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]);
+const MAX_GLB_TEXTURES = 64;
 
 export type Garment3DPreset = "soft-tee" | "denim-jacket" | "linen-shirt";
 
@@ -71,6 +72,7 @@ export function validateGlbBuffer(buffer: ArrayBuffer): string | null {
     buffers?: Array<{ uri?: string }>;
     images?: Array<{ uri?: string; bufferView?: number; mimeType?: string }>;
     bufferViews?: Array<{ buffer?: number; byteOffset?: number; byteLength?: number }>;
+    textures?: Array<{ source?: number; sampler?: number; extensions?: { KHR_texture_basisu?: { source?: number } } }>;
   };
   try {
     const jsonText = new TextDecoder().decode(new Uint8Array(buffer, 20, jsonChunkLength));
@@ -105,7 +107,11 @@ export function validateGlbBuffer(buffer: ArrayBuffer): string | null {
     offset += 8 + chunkLength;
   }
 
-  let totalTexturePixels = 0;
+  const imagePixels: number[] = [];
+  const imageCacheIds: number[] = [];
+  const uriCacheIds = new Map<string, number>();
+  const bufferViewCacheIds = new Map<number, number>();
+  let nextImageCacheId = 0;
   for (const image of gltfJson.images ?? []) {
     let imageBytes: Uint8Array | undefined;
     let mimeType = image.mimeType;
@@ -145,7 +151,38 @@ export function validateGlbBuffer(buffer: ArrayBuffer): string | null {
     if (!dimensions || dimensions.width < 1 || dimensions.height < 1) {
       return "GLB contains an unsupported or invalid embedded texture.";
     }
-    totalTexturePixels += dimensions.width * dimensions.height;
+    imagePixels.push(dimensions.width * dimensions.height);
+    if (image.uri !== undefined) {
+      let id = uriCacheIds.get(image.uri);
+      if (id === undefined) {
+        id = nextImageCacheId++;
+        uriCacheIds.set(image.uri, id);
+      }
+      imageCacheIds.push(id);
+    } else {
+      const bufferView = image.bufferView!;
+      let id = bufferViewCacheIds.get(bufferView);
+      if (id === undefined) {
+        id = nextImageCacheId++;
+        bufferViewCacheIds.set(bufferView, id);
+      }
+      imageCacheIds.push(id);
+    }
+  }
+
+  const textures = gltfJson.textures ?? [];
+  if (textures.length > MAX_GLB_TEXTURES) return "Choose a GLB with no more than 64 textures.";
+  let totalTexturePixels = 0;
+  const textureCacheKeys = new Set<string>();
+  for (const texture of textures) {
+    const imageIndex = texture.source ?? texture.extensions?.KHR_texture_basisu?.source;
+    if (imageIndex === undefined || imagePixels[imageIndex] === undefined) {
+      return "GLB texture references an invalid embedded image.";
+    }
+    const cacheKey = `${imageCacheIds[imageIndex]}:${texture.sampler ?? -1}`;
+    if (textureCacheKeys.has(cacheKey)) continue;
+    textureCacheKeys.add(cacheKey);
+    totalTexturePixels += imagePixels[imageIndex];
     if (totalTexturePixels > MAX_GLB_TEXTURE_PIXELS) {
       return "Choose a GLB whose combined textures stay within a 4096 × 4096 pixel budget.";
     }
