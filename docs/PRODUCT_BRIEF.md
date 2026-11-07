@@ -21,7 +21,7 @@ Let a shopper bring a garment image from any shop into a simple try-on experienc
 - A responsive web application with one garment preview at a time.
 - Initially supports upper-body garment overlays using transparent/cut-out garment imagery.
 - Camera start/stop, garment replacement/removal, search/filter over currently loaded local items when present, upload validation, and useful error states.
-- Basic pose alignment in the browser.
+- Browser pose alignment using shoulders and an estimated neck anchor, with a shopper-adjustable garment neckline point. This remains an illustrative 2D overlay and cannot promise 99%/100% fit accuracy.
 
 ## Not in MVP
 

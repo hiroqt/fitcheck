@@ -29,7 +29,7 @@ Describe the first implementation slice for FitCheck: select a garment image, ex
 5. Render a non-camera preview and image-quality/input instructions.
 6. On explicit Start, request video-only camera access. If permission/device fails, show the reason and preserve the selected garment.
 7. Load MediaPipe Tasks Vision WASM from the pinned jsDelivr URL and the pinned Lite Pose Landmarker model from Google Storage. Initialize one pose tracker; schedule frame analysis without overlapping synchronous inference calls. Timestamp video frames monotonically where required by the runtime.
-8. If landmarks meet confidence/visibility criteria, transform garment bounds from shoulder/hip landmarks and render the overlay. If not, hide the overlay and show a no-pose hint.
+8. If landmarks meet confidence/visibility criteria, derive shoulder width/tilt and estimate a neck anchor from the shoulder midpoint blended with the nose landmark. The model does not detect a dedicated neck landmark. Render the garment with its adjustable neckline anchor at that estimate. If landmarks are not usable, hide the overlay and show a no-pose hint.
 9. On Replace, update the selected local image; on Clear, revoke its object URL and clear the overlay.
 10. On Stop, unmount, or error, cancel frame work, close the tracker, stop every media track, and release canvas/image resources.
 
@@ -59,7 +59,7 @@ Keep modules at the fewest boundaries needed by the implementation. Avoid adding
 
 ### Pose snapshot
 
-- Normalized image-space coordinates for left/right shoulder and left/right hip.
+- Normalized image-space coordinates for left/right shoulder and nose; shoulder visibility is required, while the nose is confidence-gated and falls back to the shoulder midpoint.
 - Confidence/visibility per required landmark and frame timestamp.
 - No pose or insufficient confidence is a normal state, not an exception.
 - Stale data must not continue to claim the garment is tracking when frames stop.
@@ -74,7 +74,8 @@ Allowed transitions are explicit: start from `idle/error`; permission to `loadin
 
 - Read video dimensions only after metadata is available.
 - Use a 2D canvas for MVP composition unless measured complexity warrants WebGL.
-- Derive garment center, width, tilt, and vertical position from shoulder line and shoulder-to-hip distance. Use a small temporal smoothing filter to reduce jitter.
+- Derive garment width and tilt from shoulder points. Estimate the neck anchor using the shoulder midpoint and visible nose point, with a shoulder-only fallback. Align an adjustable point on the garment image (default 17% from its top edge) to the neck estimate so different collars/product crops can be tuned.
+- This 2D landmark heuristic does not reconstruct the neck/body surface or simulate cloth. Do not promise 99%/100% alignment or garment fit; accuracy must be measured across representative poses, cameras, and garment inputs.
 - Handle mirrored preview consistently: either mirror both video and landmark/garment coordinates or mirror only the composed output.
 - Keep aspect ratio; never stretch garment pixels independently on x/y.
 - Avoid expensive per-frame React state updates; write latest frame/landmark values to refs and draw on animation frames.

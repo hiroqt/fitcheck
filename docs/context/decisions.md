@@ -22,3 +22,10 @@
 - **Decision:** Explain that overlay appearance is illustrative and does not predict garment size or fit.
 - **Reason:** Pose overlays do not know body measurements, garment pattern, fabric, or actual physical drape.
 
+## 2026-11-07 — Neckline-anchored overlay calibration
+
+- **Status:** Accepted for MVP
+- **Source:** User requested shoulder/neck reference points for the most accurate possible garment alignment.
+- **Decision:** Use shoulders for width/tilt, estimate neck position from shoulder midpoint and a confidence-gated nose landmark, and provide an adjustable garment neckline anchor (default 17% from the top edge).
+- **Limit:** The pose model does not supply a dedicated neck landmark. This heuristic is not calibrated fitting; no 99%/100% accuracy claim is supported.
+

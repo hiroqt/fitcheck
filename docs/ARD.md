@@ -19,7 +19,8 @@ Build a standalone responsive browser app/widget in React, TypeScript, and Vite.
 - No retailer credentials, API integration, DOM scraping, extension permission, backend, or image hosting is required for the MVP.
 - A shopper can use an image from any source, but must obtain/prepare the image themselves and must have rights to use it.
 - Input quality and garment cut-out strongly affect results. A model-worn source image may not yield a clean garment overlay.
-- Pose alignment can look plausible without indicating actual size or fit; UI must not make fit claims.
+- Shoulder landmarks set garment width and tilt. A neck anchor is estimated from the shoulder midpoint and visible nose landmark; shoppers can adjust the garment image's neckline anchor. MediaPipe Pose does not directly detect the neck in this implementation.
+- Pose alignment can look plausible without indicating actual size or fit; UI must not make fit claims or promise 99%/100% accuracy. A single 2D camera view lacks calibrated body measurements, garment patterns, depth, and fabric simulation.
 - Runtime code/models are delivered to the browser. Their hosting, version pinning, license, and integrity are supply-chain concerns even though user media stays local.
 - The supported browser/device matrix and image-size limit must be measured and documented before release.
 
