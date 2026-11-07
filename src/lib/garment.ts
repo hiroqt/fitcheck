@@ -70,8 +70,8 @@ export interface NormalizedLandmark {
 }
 
 export interface GarmentPlacement {
-  centerX: number;
-  topY: number;
+  neckX: number;
+  neckY: number;
   width: number;
   rotation: number;
 }
@@ -92,10 +92,15 @@ export function getGarmentPlacement(
   const shoulderWidth = Math.hypot(rightX - leftX, rightY - leftY);
   if (!Number.isFinite(shoulderWidth) || shoulderWidth < 12) return null;
 
+  const shoulderCenterX = (leftX + rightX) / 2;
+  const shoulderCenterY = (leftY + rightY) / 2;
+  const nose = landmarks[0];
+  const hasVisibleNose = nose && (nose.visibility ?? 1) >= 0.35;
+
   return {
-    centerX: (leftX + rightX) / 2,
-    topY: (leftY + rightY) / 2 - shoulderWidth * 0.09,
-    width: shoulderWidth * 1.7,
+    neckX: hasVisibleNose ? shoulderCenterX * 0.82 + nose.x * frameWidth * 0.18 : shoulderCenterX,
+    neckY: hasVisibleNose ? shoulderCenterY * 0.82 + nose.y * frameHeight * 0.18 : shoulderCenterY,
+    width: shoulderWidth * 1.48,
     rotation: Math.atan2(rightY - leftY, rightX - leftX),
   };
 }

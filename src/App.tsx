@@ -26,6 +26,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [selectedName, setSelectedName] = useState(DEMO_GARMENTS[0].name);
   const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(DEMO_GARMENTS[0].image);
+  const [necklinePosition, setNecklinePosition] = useState(17);
   const [search, setSearch] = useState("");
   const [cleanBackground, setCleanBackground] = useState(true);
   const [uploadLabel, setUploadLabel] = useState("Upload an item from any shop");
@@ -63,6 +64,7 @@ export default function App() {
       garmentCanvasRef.current = garmentCanvas;
       setSelectedName(item.name);
       setSelectedThumbnail(item.image);
+      setNecklinePosition(17);
       setUploadLabel("Upload an item from any shop");
     } catch {
       setError("Could not load that sample garment. Refresh the page and try again.");
@@ -110,6 +112,7 @@ export default function App() {
       garmentCanvasRef.current = garmentCanvas;
       setSelectedName(file.name);
       setSelectedThumbnail(null);
+      setNecklinePosition(17);
       setUploadLabel("Your uploaded item");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not open that image.");
@@ -178,9 +181,9 @@ export default function App() {
             if (position && garment) {
               const height = position.width * (garment.height / garment.width);
               context.save();
-              context.translate(position.centerX, position.topY);
+              context.translate(position.neckX, position.neckY);
               context.rotate(position.rotation);
-              context.drawImage(garment, -position.width / 2, 0, position.width, height);
+              context.drawImage(garment, -position.width / 2, -height * (necklinePosition / 100), position.width, height);
               context.restore();
             }
           }
@@ -198,7 +201,7 @@ export default function App() {
         setError(caught instanceof Error ? caught.message : "Could not start the live preview.");
       }
     }
-  }, [stopCamera]);
+  }, [necklinePosition, stopCamera]);
 
   return (
     <main className="app-shell">
@@ -226,6 +229,7 @@ export default function App() {
             <span className="upload-arrow" aria-hidden="true">↗</span>
           </label>
           <label className="cleanup-toggle"><input type="checkbox" checked={cleanBackground} onChange={(event) => setCleanBackground(event.target.checked)} /><span className="toggle-track"><i /></span><span><strong>Clean plain backgrounds</strong><small>Works best with product-only images on a flat background.</small></span></label>
+          <label className="neckline-control"><span className="neckline-heading"><strong>GARMENT NECKLINE</strong><output>{necklinePosition}%</output></span><input aria-label="Garment neckline position" type="range" min="6" max="36" value={necklinePosition} onChange={(event) => setNecklinePosition(Number(event.target.value))} /><small>Align the collar with the tracked neck point.</small></label>
 
           <div className="garment-list" aria-label="Sample garments">
             {visibleGarments.map((item) => (

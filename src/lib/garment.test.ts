@@ -25,9 +25,11 @@ describe("garment image handling", () => {
     const landmarks = Array.from({ length: 33 }, () => ({ x: 0, y: 0, visibility: 1 }));
     landmarks[11] = { x: 0.4, y: 0.3, visibility: 0.9 };
     landmarks[12] = { x: 0.6, y: 0.32, visibility: 0.9 };
+    landmarks[0] = { x: 0.5, y: 0.2, visibility: 0.9 };
     const position = getGarmentPlacement(landmarks, 1000, 800);
-    expect(position?.centerX).toBe(500);
-    expect(position?.width).toBeGreaterThan(300);
+    expect(position?.neckX).toBe(500);
+    expect(position?.neckY).toBeCloseTo(232.16);
+    expect(position?.width).toBeGreaterThan(290);
     landmarks[11].visibility = 0.1;
     expect(getGarmentPlacement(landmarks, 1000, 800)).toBeNull();
   });
