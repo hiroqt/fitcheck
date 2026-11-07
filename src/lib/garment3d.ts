@@ -72,7 +72,12 @@ export function validateGlbBuffer(buffer: ArrayBuffer): string | null {
     buffers?: Array<{ uri?: string }>;
     images?: Array<{ uri?: string; bufferView?: number; mimeType?: string }>;
     bufferViews?: Array<{ buffer?: number; byteOffset?: number; byteLength?: number }>;
-    textures?: Array<{ source?: number; sampler?: number; extensions?: { KHR_texture_basisu?: { source?: number } } }>;
+    textures?: Array<{
+      source?: number;
+      sampler?: number;
+      extensions?: { KHR_texture_basisu?: { source?: number }; EXT_texture_webp?: { source?: number } };
+    }>;
+    samplers?: unknown[];
   };
   try {
     const jsonText = new TextDecoder().decode(new Uint8Array(buffer, 20, jsonChunkLength));
@@ -175,11 +180,18 @@ export function validateGlbBuffer(buffer: ArrayBuffer): string | null {
   let totalTexturePixels = 0;
   const textureCacheKeys = new Set<string>();
   for (const texture of textures) {
-    const imageIndex = texture.source ?? texture.extensions?.KHR_texture_basisu?.source;
+    const imageIndex = texture.extensions?.EXT_texture_webp?.source ??
+      texture.extensions?.KHR_texture_basisu?.source ?? texture.source;
     if (imageIndex === undefined || imagePixels[imageIndex] === undefined) {
       return "GLB texture references an invalid embedded image.";
     }
-    const cacheKey = `${imageCacheIds[imageIndex]}:${texture.sampler ?? -1}`;
+    if (
+      texture.sampler !== undefined &&
+      (!Number.isInteger(texture.sampler) || texture.sampler < 0 || texture.sampler >= (gltfJson.samplers?.length ?? 0))
+    ) {
+      return "GLB texture references an invalid sampler.";
+    }
+    const cacheKey = `${imageCacheIds[imageIndex]}:${texture.sampler}`;
     if (textureCacheKeys.has(cacheKey)) continue;
     textureCacheKeys.add(cacheKey);
     totalTexturePixels += imagePixels[imageIndex];

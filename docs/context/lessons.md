@@ -43,7 +43,7 @@ Add a lesson only when an implementation result, scanner output, or user correct
 
 - **Trigger:** Independent review found that a small uploaded GLB could contain a highly compressed image with excessive decoded dimensions.
 - **Evidence:** GLB byte-size validation did not bound embedded image pixel counts before Three.js parsing.
-- **Action:** Read PNG/JPEG/WebP dimensions from embedded data URIs or GLB buffer views, count unique image/sampler variants, and reject models with more than 64 texture entries or a combined decoded texture budget above 4096 × 4096 pixels before calling `GLTFLoader`; cover URI, buffer-view, sampler, and aggregate-size cases with regression tests.
+- **Action:** Read PNG/JPEG/WebP dimensions from embedded data URIs or GLB buffer views, follow the loader's WebP source override and image/sampler cache key, and reject models with invalid samplers, more than 64 texture entries, or a combined decoded texture budget above 4096 × 4096 pixels before calling `GLTFLoader`; cover URI, buffer-view, sampler, extension, and aggregate-size cases with regression tests.
 
 ## 2026-11-07 — Shop image access and clean overlays
 

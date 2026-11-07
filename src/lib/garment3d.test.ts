@@ -51,6 +51,26 @@ function pngHeader(width: number, height: number): Uint8Array {
   return bytes;
 }
 
+function webpHeader(width: number, height: number): Uint8Array {
+  const bytes = new Uint8Array(30);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(0, 0x46464952, true);
+  view.setUint32(8, 0x50424557, true);
+  bytes.set([0x56, 0x50, 0x38, 0x58], 12);
+  view.setUint32(16, 10, true);
+  bytes[24] = (width - 1) & 0xff;
+  bytes[25] = ((width - 1) >> 8) & 0xff;
+  bytes[26] = ((width - 1) >> 16) & 0xff;
+  bytes[27] = (height - 1) & 0xff;
+  bytes[28] = ((height - 1) >> 8) & 0xff;
+  bytes[29] = ((height - 1) >> 16) & 0xff;
+  return bytes;
+}
+
+function embeddedImageUri(mimeType: string, bytes: Uint8Array): string {
+  return `data:${mimeType};base64,${btoa(String.fromCharCode(...bytes))}`;
+}
+
 describe("3D GLB validation and generation", () => {
   it("accepts valid .glb file metadata and rejects invalid extensions or oversized files", () => {
     expect(validateGlbFile({ name: "jacket.glb", type: "model/gltf-binary", size: 2048 })).toBeNull();
@@ -87,7 +107,7 @@ describe("3D GLB validation and generation", () => {
 
   it("rejects embedded image textures above the decoded pixel budget before GLB parsing", () => {
     const oversizedTexture = pngHeader(5000, 4000);
-    const dataUri = `data:image/png;base64,${btoa(String.fromCharCode(...oversizedTexture))}`;
+    const dataUri = embeddedImageUri("image/png", oversizedTexture);
     const oversized = makeGlb({
       asset: { version: "2.0" },
       images: [{ uri: dataUri }],
@@ -96,7 +116,7 @@ describe("3D GLB validation and generation", () => {
     expect(validateGlbBuffer(oversized)).toContain("4096 × 4096");
 
     const boundedTexture = pngHeader(1024, 1024);
-    const boundedDataUri = `data:image/png;base64,${btoa(String.fromCharCode(...boundedTexture))}`;
+    const boundedDataUri = embeddedImageUri("image/png", boundedTexture);
     expect(validateGlbBuffer(makeGlb({
       asset: { version: "2.0" },
       images: [{ uri: boundedDataUri }],
@@ -104,10 +124,11 @@ describe("3D GLB validation and generation", () => {
     }))).toBeNull();
 
     const texture2048 = pngHeader(2048, 2048);
-    const repeatedDataUri = `data:image/png;base64,${btoa(String.fromCharCode(...texture2048))}`;
+    const repeatedDataUri = embeddedImageUri("image/png", texture2048);
     const repeatedTextures = makeGlb({
       asset: { version: "2.0" },
       images: [{ uri: repeatedDataUri }],
+      samplers: Array.from({ length: 5 }, () => ({})),
       textures: Array.from({ length: 5 }, (_, sampler) => ({ source: 0, sampler })),
     });
     expect(validateGlbBuffer(repeatedTextures)).toContain("combined textures");
@@ -115,9 +136,28 @@ describe("3D GLB validation and generation", () => {
     const duplicateSamplerTextures = makeGlb({
       asset: { version: "2.0" },
       images: [{ uri: repeatedDataUri }],
+      samplers: [{}],
       textures: Array.from({ length: 5 }, () => ({ source: 0, sampler: 0 })),
     });
     expect(validateGlbBuffer(duplicateSamplerTextures)).toBeNull();
+
+    const webpOverride = makeGlb({
+      asset: { version: "2.0" },
+      images: [
+        { uri: embeddedImageUri("image/png", pngHeader(1, 1)) },
+        { uri: embeddedImageUri("image/webp", webpHeader(5000, 4000)) },
+      ],
+      textures: [{ source: 0, extensions: { EXT_texture_webp: { source: 1 } } }],
+    });
+    expect(validateGlbBuffer(webpOverride)).toContain("4096 × 4096");
+
+    const invalidSampler = makeGlb({
+      asset: { version: "2.0" },
+      images: [{ uri: repeatedDataUri }],
+      samplers: [{}],
+      textures: [{ source: 0 }, { source: 0, sampler: null }],
+    });
+    expect(validateGlbBuffer(invalidSampler)).toContain("invalid sampler");
 
     const tooManyTextureEntries = makeGlb({
       asset: { version: "2.0" },

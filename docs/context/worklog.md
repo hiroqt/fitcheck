@@ -4,7 +4,7 @@
 
 - **Goal:** Review the accumulated 2D and optional GLB try-on work, group it into reviewable commits, and deliver it through a reviewed PR.
 - **Changed:** Guarded asynchronous image/GLB uploads against stale completion; capped GLB uploads at 64 texture entries and a combined 4096 × 4096 pixel budget across unique image/sampler variants before model parsing; corrected architecture, audit, feasibility, adaptation, README, and decision notes to describe the current 2D default and optional GLB renderer without claiming an implemented skinned mesh or unverified timings.
-- **Checks:** `npm run check` passed (50 tests and production build); `git diff --check` passed. Independent static reviews found and this change fixed a stale-upload race, unbounded embedded textures, and documentation discrepancies. No live webcam/browser visual retest was performed in this delivery.
+- **Checks:** `npm run check` passed (50 tests and production build); `git diff --check` passed. Independent static reviews found and this change fixed a stale-upload race, unbounded embedded textures (including WebP extension overrides and sampler variants), and documentation discrepancies. No live webcam/browser visual retest was performed in this delivery.
 - **Next:** Update the open PR with the GLB texture bound, wait for its CI check, and merge after final review and required checks pass.
 
 ## 2026-11-07 — Keep uploaded raster try-on strictly on the 2D path
