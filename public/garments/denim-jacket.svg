@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 560">
+  <defs>
+    <linearGradient id="denim" x2="1" y2="1"><stop stop-color="#9ab5d1"/><stop offset="1" stop-color="#536f91"/></linearGradient>
+  </defs>
+  <path d="M153 60 198 42h84l45 18 104 73-56 101-56-32v302H159V202l-56 32-56-101z" fill="url(#denim)" stroke="#344f70" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M198 42c4 40 18 63 42 63s38-23 42-63M240 105v399M159 204l81 46 81-46" fill="none" stroke="#d2deea" stroke-width="7"/>
+  <path d="m176 225 54 33-11 66-47-28zm128 0-54 33 11 66 47-28z" fill="#c6d4e1" stroke="#344f70" stroke-width="5"/>
+  <circle cx="251" cy="160" r="5" fill="#e4c88c"/><circle cx="251" cy="205" r="5" fill="#e4c88c"/><circle cx="251" cy="250" r="5" fill="#e4c88c"/>
+</svg>
