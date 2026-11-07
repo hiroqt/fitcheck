@@ -1,9 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 560">
   <defs>
-    <linearGradient id="linen" x2="1" y2="1"><stop stop-color="#f2e8d5"/><stop offset="1" stop-color="#d8c8aa"/></linearGradient>
+    <linearGradient id="linenBase" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ede3d1"/>
+      <stop offset="55%" stop-color="#dfd2bc"/>
+      <stop offset="100%" stop-color="#cbbba1"/>
+    </linearGradient>
+    <linearGradient id="linenCylinder" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#5c503e" stop-opacity="0.38"/>
+      <stop offset="18%" stop-color="#7a6b55" stop-opacity="0.10"/>
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="82%" stop-color="#7a6b55" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#5c503e" stop-opacity="0.38"/>
+    </linearGradient>
   </defs>
-  <path d="M160 62 200 42h80l40 20 105 75-57 99-56-31v303H168V205l-56 31-57-99z" fill="url(#linen)" stroke="#aa9778" stroke-width="8" stroke-linejoin="round"/>
-  <path d="m200 42 40 64 40-64m-40 64v402" fill="none" stroke="#aa9778" stroke-width="7"/>
-  <path d="m198 43 42 63-36 52-46-96zm82 0-40 63 37 52 45-96z" fill="#e6d9c1" stroke="#aa9778" stroke-width="5"/>
-  <circle cx="250" cy="195" r="4" fill="#a28b69"/><circle cx="250" cy="241" r="4" fill="#a28b69"/><circle cx="250" cy="287" r="4" fill="#a28b69"/>
+  <!-- Inner collar stand -->
+  <path d="M186 42 Q240 64 294 42 L288 92 Q240 102 192 92 Z" fill="#c4b398"/>
+  <!-- Full-coverage relaxed linen silhouette -->
+  <path d="M184 42 C206 64 274 64 296 42 L368 68 C404 84 436 122 458 174 L402 228 C384 210 368 194 356 188 C354 260 356 400 362 524 L118 524 C124 400 126 260 124 188 C112 194 96 210 78 228 L22 174 C44 122 76 84 112 68 Z" fill="url(#linenBase)"/>
+  <path d="M184 42 C206 64 274 64 296 42 L368 68 C404 84 436 122 458 174 L402 228 C384 210 368 194 356 188 C354 260 356 400 362 524 L118 524 C124 400 126 260 124 188 C112 194 96 210 78 228 L22 174 C44 122 76 84 112 68 Z" fill="url(#linenCylinder)"/>
+  <!-- Camp collar lapels -->
+  <path d="M184 42 L240 108 L194 126 L160 58 Z M296 42 L240 108 L286 126 L320 58 Z" fill="#e6dac6" stroke="#b3a186" stroke-width="1.8"/>
+  <!-- Center placket & buttons -->
+  <path d="M232 108 L232 524 M248 108 L248 524" fill="none" stroke="#b3a186" stroke-opacity="0.65" stroke-width="1.5"/>
+  <circle cx="240" cy="156" r="4" fill="#9c886b"/>
+  <circle cx="240" cy="224" r="4" fill="#9c886b"/>
+  <circle cx="240" cy="292" r="4" fill="#9c886b"/>
+  <circle cx="240" cy="360" r="4" fill="#9c886b"/>
+  <circle cx="240" cy="428" r="4" fill="#9c886b"/>
 </svg>

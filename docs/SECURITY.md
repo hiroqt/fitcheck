@@ -1,5 +1,7 @@
 # Security and Privacy Model
 
+The 2026-11-07 [replacement-pipeline assessment](TRY_ON_FEASIBILITY.md) permits evaluating browser or same-computer inference. No local service has been integrated; the browser-only controls below still describe current media handling. Remote inference and persistent user imagery remain outside the agreed scope. A future local-service data flow must be reviewed before integration, including loopback access, allowed origins, cancellation, and media lifetime.
+
 **Status:** design requirements for the MVP. Controls below are planned until verified in the implementation.
 
 ## Scope and protected data
@@ -27,11 +29,12 @@ The browser, its same-origin application code, the hosting origin, package/model
 - Use `getUserMedia` on HTTPS (localhost for development), request video only, and never request audio.
 - Stop every `MediaStreamTrack` when the shopper stops the camera, leaves the try-on view, or the component is disposed. A visible active-camera state and a clear stop control are required.
 - Keep frames in memory for the live preview. Do not send them to a backend, analytics, crash-reporting service, or third-party API; do not save screenshots or retain frames after stopping.
+- Keep pose results and garment compositing in browser memory; release each pose result after rendering.
 - On permission denial or missing hardware, explain the state and recovery path. Never retry permission prompts in a loop.
 
 ### Uploaded garment files
 
-- Accept only explicitly supported raster formats (initially PNG, JPEG, and WebP); reject SVG, HTML, and unknown formats even when the filename or browser MIME type claims otherwise.
+- Accept only explicitly supported raster formats (PNG, JPEG, and WebP up to 10 MiB / 4096×4096) or self-contained binary glTF 2.0 models (`.glb` up to 15 MiB); reject SVG, HTML, unknown formats, external GLB buffer/image URIs, more than 64 GLB texture entries, and models whose combined unique image/sampler variants exceed 4096 × 4096 decoded pixels before parsing.
 - Validate declared type and decoded type, plus maximum file size and image dimensions, before allocating a large canvas or processing pixels. Show a useful error and allow replacement.
 - Decode locally, downscale to a bounded working size, and release object URLs, image bitmaps, and temporary canvas resources when the item is replaced or cleared.
 - Treat filenames and image metadata as untrusted. Do not render filenames as HTML, fetch embedded URLs, or execute image-provided content.
