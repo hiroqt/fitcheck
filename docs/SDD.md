@@ -24,12 +24,14 @@ Describe the first implementation slice for FitCheck: select a garment image, ex
 
 1. App loads with no camera requested.
 2. Shopper chooses a raster image. Validate MIME allowlist, encoded size, decoded dimensions, and image decode success before making it active.
-3. Render a non-camera preview and image-quality/input instructions.
-4. On explicit Start, request video-only camera access. If permission/device fails, show the reason and preserve the selected garment.
-5. Initialize one pose tracker; schedule frame analysis without overlapping synchronous inference calls. Timestamp video frames monotonically where required by the runtime.
-6. If landmarks meet confidence/visibility criteria, transform garment bounds from shoulder/hip landmarks and render the overlay. If not, hide the overlay and show a no-pose hint.
-7. On Replace, update the selected local image; on Clear, revoke its object URL and clear the overlay.
-8. On Stop, unmount, or error, cancel frame work, close the tracker, stop every media track, and release canvas/image resources.
+3. Reject images larger than 10 MiB or 4096 × 4096 decoded pixels. Downscale accepted images so the longest edge is at most 1600 pixels before compositing.
+4. If the optional plain-background cleanup is enabled and the image has no existing transparency, estimate the background color from the four corners and remove edge-connected pixels within the configured color tolerance. Preserve the input image when the user disables cleanup.
+5. Render a non-camera preview and image-quality/input instructions.
+6. On explicit Start, request video-only camera access. If permission/device fails, show the reason and preserve the selected garment.
+7. Load MediaPipe Tasks Vision WASM from the pinned jsDelivr URL and the pinned Lite Pose Landmarker model from Google Storage. Initialize one pose tracker; schedule frame analysis without overlapping synchronous inference calls. Timestamp video frames monotonically where required by the runtime.
+8. If landmarks meet confidence/visibility criteria, transform garment bounds from shoulder/hip landmarks and render the overlay. If not, hide the overlay and show a no-pose hint.
+9. On Replace, update the selected local image; on Clear, revoke its object URL and clear the overlay.
+10. On Stop, unmount, or error, cancel frame work, close the tracker, stop every media track, and release canvas/image resources.
 
 ## 4. Module responsibilities
 
@@ -49,10 +51,11 @@ Keep modules at the fewest boundaries needed by the implementation. Avoid adding
 ### Garment image
 
 - Raster input only: PNG, JPEG, or WebP; no SVG.
-- MVP overlay expects a transparent/cut-out upper-body garment.
+- Maximum encoded file size: 10 MiB. Maximum decoded width and height: 4096 pixels each.
+- Accepted images are downscaled locally before compositing so their longest edge is no more than 1600 pixels; aspect ratio is preserved.
+- MVP overlay expects a transparent/cut-out upper-body garment. An optional plain-background cleanup estimates the background from the four corner pixels and removes connected edge pixels within RGB tolerance 42; it is intended for product-only images on a flat, consistent background and can remove garment pixels when their colors resemble the background.
 - Metadata: local object URL, pixel width/height, original file name for display only.
 - Do not include file name in markup as HTML or send image bytes outside the page.
-- Reject files over a documented provisional cap (recommend 10 MiB) or decoded dimensions above a documented cap (recommend 8192 on either dimension); confirm after memory/performance measurement.
 
 ### Pose snapshot
 
@@ -84,6 +87,7 @@ Allowed transitions are explicit: start from `idle/error`; permission to `loadin
 - Store no user media in localStorage, IndexedDB, logs, or server sessions.
 - Use object URLs for selected files and revoke them on replacement/clear/unmount.
 - Validate image MIME, byte size, and decoded dimensions; handle decode failure.
+- MediaPipe runtime/WASM is fetched from the pinned `@mediapipe/tasks-vision` version on jsDelivr; the pinned Lite Pose Landmarker model is fetched from Google Storage. These requests fetch static runtime/model assets only. Camera frames and garment pixels are processed locally and are not sent to either host or an application server.
 - Cancel animation callbacks and dispose MediaPipe resources on every exit path.
 - Keep CSP and remote asset origins as narrow as the chosen runtime permits.
 - Audit npm dependencies and all model/asset licenses; lock versions.
