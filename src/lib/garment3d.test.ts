@@ -184,6 +184,25 @@ describe("3D GLB validation and generation", () => {
       textures: [{ source: 0 }],
     }, boundedTexture);
     expect(validateGlbBuffer(bufferViewGlb)).toBeNull();
+
+    const largeBufferViewTexture = pngHeader(3000, 3000);
+    const twoBufferViewTextures = new Uint8Array(largeBufferViewTexture.length * 2);
+    twoBufferViewTextures.set(largeBufferViewTexture);
+    twoBufferViewTextures.set(largeBufferViewTexture, largeBufferViewTexture.length);
+    const emptyUriBufferViews = makeGlb({
+      asset: { version: "2.0" },
+      buffers: [{ byteLength: twoBufferViewTextures.length }],
+      bufferViews: [
+        { buffer: 0, byteOffset: 0, byteLength: largeBufferViewTexture.length },
+        { buffer: 0, byteOffset: largeBufferViewTexture.length, byteLength: largeBufferViewTexture.length },
+      ],
+      images: [
+        { uri: "", bufferView: 0, mimeType: "image/png" },
+        { uri: "", bufferView: 1, mimeType: "image/png" },
+      ],
+      textures: [{ source: 0 }, { source: 1 }],
+    }, twoBufferViewTextures);
+    expect(validateGlbBuffer(emptyUriBufferViews)).toContain("4096 × 4096");
   });
 
   it("parses generated .glb garment presets into Three.js groups with Torso, SleeveLeft, and SleeveRight nodes", async () => {

@@ -157,7 +157,7 @@ export function validateGlbBuffer(buffer: ArrayBuffer): string | null {
       return "GLB contains an unsupported or invalid embedded texture.";
     }
     imagePixels.push(dimensions.width * dimensions.height);
-    if (image.uri !== undefined) {
+    if (image.uri) {
       let id = uriCacheIds.get(image.uri);
       if (id === undefined) {
         id = nextImageCacheId++;
