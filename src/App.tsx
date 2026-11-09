@@ -2,14 +2,6 @@ import { createDecartClient, models } from "@decartai/sdk";
 import { useEffect, useRef, useState } from "react";
 import { prepareGarmentImage, validateGarmentFile } from "./lib/garment";
 
-declare module "react" {
-  namespace JSX {
-    interface IntrinsicElements {
-      "iconify-icon": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & { icon?: string };
-    }
-  }
-}
-
 const model = models.realtime("lucy-2.6");
 const client = createDecartClient({
   telemetry: false,
@@ -227,7 +219,7 @@ export default function App() {
             <label className="field-label" htmlFor="garment-input">01 <span>GARMENT IMAGE</span></label>
             <label className={`upload-box ${garment ? "has-image" : ""}`} htmlFor="garment-input">
               <input id="garment-input" type="file" accept="image/png,image/jpeg,image/webp" disabled={status === "connecting"} onChange={(event) => { void updateGarment(event.target.files?.[0]); event.target.value = ""; }} />
-              {thumbnail ? <img src={thumbnail} alt="Selected garment" /> : <><iconify-icon className="upload-icon" icon="hugeicons:image-add-02" aria-hidden="true" /><strong>{preparing ? "Preparing image…" : "Choose a garment photo"}</strong><small>PNG, JPG or WebP · up to 10 MB</small></>}
+              {thumbnail ? <img src={thumbnail} alt="Selected garment" /> : <><span className="upload-icon" aria-hidden="true">+</span><strong>{preparing ? "Preparing image…" : "Choose a garment photo"}</strong><small>PNG, JPG or WebP · up to 10 MB</small></>}
               {garment && <span className="change-image">Change image</span>}
             </label>
             {garment && <button className="clear-button" type="button" disabled={status === "connecting"} onClick={() => void clearGarment()}>Remove garment image</button>}
@@ -236,8 +228,8 @@ export default function App() {
             <p className="prompt-hint">Mention colors, style, and details you want Lucy to preserve.</p>
             {error && <p className="error-message" role="alert">{error}</p>}
             {live && <button className="update-button" type="button" onClick={() => void applyPrompt()}>Apply outfit description</button>}
-            {!live && status !== "connecting" && <div className="privacy-note" role="note"><iconify-icon icon="hugeicons:information-circle" aria-hidden="true" /><span><strong>Before you start:</strong> your live camera video and garment image are sent to Decart to create this preview. FitCheck does not save them. Decart's API terms permit it to use inputs and outputs to operate and improve/train its services. <a href="https://docs.platform.decart.ai/resources/api-terms" target="_blank" rel="noreferrer">Review Decart's terms</a>.</span></div>}
-            {live ? <button className="start-button stop-button" type="button" onClick={stop}><iconify-icon icon="hugeicons:stop" aria-hidden="true" /> Stop preview</button> : status === "connecting" ? <button className="start-button stop-button" type="button" onClick={stop}>Cancel connection</button> : <button className="start-button" type="button" onClick={() => void start()} disabled={!garment || preparing || !prompt.trim()}><iconify-icon icon={preparing ? "hugeicons:loading-03" : "hugeicons:play"} aria-hidden="true" />{preparing ? "Preparing image…" : "Start virtual try-on"}</button>}
+            {!live && status !== "connecting" && <div className="privacy-note" role="note"><span><strong>Before you start:</strong> your live camera video and garment image are sent to Decart to create this preview. FitCheck does not save them. Decart's API terms permit it to use inputs and outputs to operate and improve/train its services, and limit API use to business and professional purposes. This local prototype is not cleared for consumer deployment. <a href="https://docs.platform.decart.ai/resources/api-terms" target="_blank" rel="noreferrer">Review Decart's terms</a>.</span></div>}
+            {live ? <button className="start-button stop-button" type="button" onClick={stop}>Stop preview</button> : status === "connecting" ? <button className="start-button stop-button" type="button" onClick={stop}>Cancel connection</button> : <button className="start-button" type="button" onClick={() => void start()} disabled={!garment || preparing || !prompt.trim()}>{preparing ? "Preparing image…" : "Start virtual try-on"}</button>}
             <p className="button-caption">{live ? "Your camera is active. Stop whenever you’re ready." : "Camera starts only after you choose Start."}</p>
           </aside>
         </div>

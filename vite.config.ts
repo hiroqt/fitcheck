@@ -2,6 +2,13 @@ import { createDecartClient, type CreateTokenOptions } from "@decartai/sdk";
 import { defineConfig, loadEnv, type Connect, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { isIP } from "node:net";
+
+function isLoopbackAddress(address: string): boolean {
+  if (address === "::1") return true;
+  const ipv4 = address.startsWith("::ffff:") ? address.slice(7) : address;
+  return isIP(ipv4) === 4 && ipv4.startsWith("127.");
+}
 
 export function localTokenEndpoint(
   apiKey: string | undefined,
@@ -18,6 +25,11 @@ export function localTokenEndpoint(
     }
     if ((request.headers["content-length"] && request.headers["content-length"] !== "0") || request.headers["transfer-encoding"]) {
       response.writeHead(413).end();
+      return true;
+    }
+    const address = request.socket.remoteAddress ?? "";
+    if (!isLoopbackAddress(address)) {
+      response.writeHead(403).end();
       return true;
     }
     const origin = request.headers.origin;
@@ -39,7 +51,6 @@ export function localTokenEndpoint(
       response.writeHead(503, { "Content-Type": "application/json" }).end(JSON.stringify({ error: "DECART_API_KEY is not configured on the local server." }));
       return true;
     }
-    const address = request.socket.remoteAddress ?? "unknown";
     const now = Date.now();
     const recent = (recentRequests.get(address) ?? []).filter((time) => now - time < 60_000);
     if (recent.length >= 20) {

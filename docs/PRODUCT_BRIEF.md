@@ -1,6 +1,6 @@
 # FitCheck Product Brief
 
-**Direction update, 2026-11-09:** The app now targets live garment previews through Decart Lucy 2.6. This replaces the local browser overlay and from-scratch still-generation direction. The app is a local-development prototype; production hosting and privacy disclosures must be reviewed before release.
+**Direction update, 2026-11-09:** The app now targets live garment previews through Decart Lucy 2.6. This replaces the local browser overlay and from-scratch still-generation direction. The app is a local-development prototype for business/professional evaluation; its current provider terms do not clear consumer deployment. Production hosting and privacy disclosures must be reviewed before release.
 
 ## User and outcome
 

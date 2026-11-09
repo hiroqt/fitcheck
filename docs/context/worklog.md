@@ -6,6 +6,13 @@
 - **Changed:** Updated `AGENTS.md` to record this accepted provider-specific exception while retaining the no-logging/no-persistence boundary; updated the accepted decision source here.
 - **Next:** Run the repository checks, review the final diff, and deliver through a PR. Production hosting and live camera/WebRTC QA remain out of scope.
 
+## 2026-11-09 — Harden the Decart integration for review
+
+- **Review findings:** Independent review found the local token route did not validate the socket peer address and the page loaded a third-party icon runtime with access to the camera/token flow. Review also flagged Decart's business/professional-use restriction against the shopper-facing framing.
+- **Changed:** Require loopback peer addresses, cover peer/Host/body checks in token-route tests, remove the remote icon runtime and Google-hosted font, and state that this local prototype is for business/professional evaluation and is not cleared for consumer deployment.
+- **Checks:** `npm run check` passed (TypeScript, 9 tests, production build); `npm audit --audit-level=high` found 0 vulnerabilities; `git diff --check` passed. No camera or live provider session was run.
+- **Next:** Review the final diff and deliver via PR; production hosting and real camera/WebRTC QA remain open.
+
 ## 2026-11-09 — Review Lucy integration and prepare delivery
 
 - **Changed:** Added the remote-processing and provider-terms notice directly before Start, guarded delayed errors from stale sessions, and added four token-endpoint tests for origin checks, token scope, method/key rejection, and rate limiting.

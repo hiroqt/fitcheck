@@ -29,7 +29,7 @@ FitCheck is a local-development web app that lets a shopper preview a garment on
 
 ## Deployment boundary
 
-The current endpoint is embedded in Vite's development and preview servers. It is for local use only and does not make a static production bundle deployable. A production host must provide an equivalent hardened server route, secret management, HTTPS, user abuse controls, usage/cost limits, and reviewed privacy disclosures before launch.
+The current endpoint is embedded in Vite's development and preview servers. It is for local business/professional evaluation only and does not make a static production bundle deployable. Current Decart API terms do not clear a consumer-facing production service. A production host must provide an equivalent hardened server route, secret management, HTTPS, user abuse controls, usage/cost limits, provider approval for the intended use, and reviewed privacy disclosures before launch.
 
 ## Non-goals
 

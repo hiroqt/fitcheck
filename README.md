@@ -17,7 +17,7 @@ If the app reports that the local token route is missing, stop the older Vite pr
 
 ## Data and privacy
 
-Camera video and garment images are sent to Decart while a realtime session is active. The browser requests video only, after a deliberate start action; stopping the session disconnects Lucy and stops all camera tracks. FitCheck does not save media locally or run its own image server. Decart's currently published [API terms](https://docs.platform.decart.ai/resources/api-terms) permit submitted inputs and outputs to be used to operate and improve/train its services. Users should not submit sensitive imagery or images they do not have rights to submit.
+Camera video and garment images are sent to Decart while a realtime session is active. The browser requests video only, after a deliberate start action; stopping the session disconnects Lucy and stops all camera tracks. FitCheck does not save media locally or run its own image server. Decart's currently published [API terms](https://docs.platform.decart.ai/resources/api-terms) permit submitted inputs and outputs to be used to operate and improve/train its services and limit API use to business and professional purposes. This local prototype is not cleared for consumer deployment. Users should not submit sensitive imagery or images they do not have rights to submit.
 
 For production use, deploy a server-side token endpoint with authentication/abuse controls appropriate to the app, restrict token model and origin, configure the permanent key as a server secret, and publish an accurate privacy notice. A static Vite build alone does not include the token endpoint. Read [Security](docs/SECURITY.md) before deployment.
 

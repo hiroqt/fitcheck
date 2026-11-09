@@ -11,7 +11,7 @@ Browser <──────────── transformed remote video stream �
 Browser ── same-origin token request ──> local Vite middleware ── permanent key ──> Decart token API
 ```
 
-Camera video and garment images leave the browser and are processed by Decart during a session. FitCheck does not save media to disk or send it to its own image-processing server. Decart's published [API terms](https://docs.platform.decart.ai/resources/api-terms) grant rights to use inputs and outputs to operate and improve/train its services and say inputs/outputs are not confidential. The terms limit API use to business and professional purposes, not personal or household consumer use. The UI discloses the data flow and use terms before Start; users should not submit sensitive imagery or content they lack rights to provide.
+Camera video and garment images leave the browser and are processed by Decart during a session. FitCheck does not save media to disk or send it to its own image-processing server. Decart's published [API terms](https://docs.platform.decart.ai/resources/api-terms) grant rights to use inputs and outputs to operate and improve/train its services and say inputs/outputs are not confidential. The terms limit API use to business and professional purposes, not personal or household consumer use. This local prototype is restricted to business/professional evaluation; it is not cleared for consumer deployment. The UI discloses the data flow and use terms before Start; users should not submit sensitive imagery or content they lack rights to provide.
 
 ## Controls in this prototype
 

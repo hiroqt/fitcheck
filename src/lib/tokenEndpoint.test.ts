@@ -15,6 +15,7 @@ function createEndpoint(apiKey: string | undefined = "server-secret") {
   async function request(overrides: {
     method?: string;
     headers?: Record<string, string>;
+    remoteAddress?: string;
   } = {}) {
     let status = 0;
     const headers: Record<string, string> = {};
@@ -36,7 +37,7 @@ function createEndpoint(apiKey: string | undefined = "server-secret") {
         "x-fitcheck-request": "1",
         ...overrides.headers,
       },
-      socket: { remoteAddress: "127.0.0.1" },
+      socket: { remoteAddress: overrides.remoteAddress ?? "127.0.0.1" },
     } as unknown as IncomingMessage;
     middleware(message, response, () => {});
     await ended;
@@ -51,7 +52,23 @@ describe("local realtime token endpoint", () => {
     const { request, mintToken } = createEndpoint();
     const response = await request({ headers: { origin: "http://attacker.test" } });
     expect(response.status).toBe(403);
+    expect((await request({ headers: { host: "localhost:5173" } })).status).toBe(403);
     expect(mintToken).not.toHaveBeenCalled();
+  });
+
+  it("rejects requests from network peers even when their origin claims localhost", async () => {
+    const { request, mintToken } = createEndpoint();
+    const response = await request({
+      headers: { origin: "http://localhost:4173", host: "localhost:4173" },
+      remoteAddress: "192.168.1.25",
+    });
+    expect(response.status).toBe(403);
+    expect(mintToken).not.toHaveBeenCalled();
+  });
+
+  it("rejects requests with a body", async () => {
+    expect((await createEndpoint().request({ headers: { "content-length": "4" } })).status).toBe(413);
+    expect((await createEndpoint().request({ headers: { "transfer-encoding": "chunked" } })).status).toBe(413);
   });
 
   it("mints a short-lived token scoped to the requesting origin and model", async () => {
