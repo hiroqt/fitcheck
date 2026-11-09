@@ -1,5 +1,104 @@
 # Milestone Worklog
 
+## 2026-11-09 — Review Lucy integration and prepare delivery
+
+- **Changed:** Added the remote-processing and provider-terms notice directly before Start, guarded delayed errors from stale sessions, and added four token-endpoint tests for origin checks, token scope, method/key rejection, and rate limiting.
+- **Review:** Independent spec and standards reviews found the missing pre-start disclosure and the stale-session race; both are fixed. The retained `public/local-garment.webp` is untracked, unused, and excluded from commits because its provenance is unclear.
+- **Checks:** `npm run check` passed (TypeScript, 7 tests, production build); `git diff --check` passed; the local camera-off UI shows the pre-start disclosure. `npm run lint --if-present` found no lint script.
+- **Blocker:** The provided `AGENTS.md` still says camera and garment pixels must never leave the browser, while this integration streams them to Decart. The branch is prepared locally; do not push/open the PR or merge until the user clarifies whether this specific privacy boundary has been superseded.
+
+## 2026-11-09 — Replace local rendering with Decart Lucy 2.6
+
+- **Goal:** Rebuild the app around the user's updated request to use Decart realtime Lucy 2.6.
+- **Changed:** Replaced the Canvas/MediaPipe/Three UI with a Lucy realtime interface, explicit outbound-media/terms disclosure, short-lived scoped-token flow in Vite local middleware, and updated current product/architecture/security docs. Garments are locally decoded, dimension-checked, and re-encoded to WebP. Removed old renderer/training source and artifacts plus obsolete rendering reports. Kept `public/local-garment.webp` because its ownership was unclear.
+- **Checks:** `npm run check` passed (typecheck, 3 tests, production build); `git diff --check` passed. Local token route minted a short-lived token with the configured key (HTTP 200; response discarded); cross-origin request returned 403; non-empty request body returned 413. The key was not found in production assets. Reviewed the camera-off UI in a local browser. No camera or garment media was sent to Decart.
+- **Limit / next:** This is local development only. Production backend/hosting, usage and abuse controls, current provider privacy/retention/pricing review, and a real camera/WebRTC session remain open. Lucy 2.6 supports VTON but is not Decart's dedicated VTON model. `AGENTS.md` still has the previous local-only media rule; the repo requires policy changes via reviewed PR, so it remains a follow-up rather than being silently edited here.
+
+## 2026-11-09 — Restore local token route
+
+- **Goal:** Diagnose the UI's “Could not authorize a Decart session” message.
+- **Finding / change:** `.env` had a configured key. The existing FitCheck Vite process on port 5173 returned 404 for `/api/realtime-token`; a fresh Vite instance returned a valid scoped token. Replaced the stale local process, restarted Vite on 5173, and improved client errors for 404/403/503/502/429 responses. Added a README restart note.
+- **Checks:** Same-origin token request to the restarted server returned HTTP 200 with Lucy 2.6 permissions; no camera or garment media was sent. `npm run check` and `git diff --check` passed.
+
+## 2026-11-09 — Extend segmented shoulder coverage
+
+- **Goal:** Reduce the uncovered shoulder gap visible in the user's live preview.
+- **Changed:** Increased the active mesh's segmentation-capped shoulder half-width from 0.54 to 0.62 of skeletal shoulder width and allowed the shoulder seam to use that measured span. Added a regression proving the segmented shoulder edge moves outward.
+- **Checks:** Focused garment tests passed (26); `npm run check` passed (58 tests and production build); `git diff --check` passed.
+- **Limit:** No live camera retest was performed. The wider seam may look oversized on other body shapes/poses and cannot create realistic cloth wrapping.
+
+## 2026-11-09 — Add detail-aware scratch-training objective
+
+- **Goal:** Address the prior generator's blurry output without introducing pretrained generation weights.
+- **Changed:** Added a conditional PatchGAN discriminator and hinge adversarial objective alongside garment-weighted L1 reconstruction in `training/model.py` and `training/train.py`; added a gradient/shape regression and documented the experiment.
+- **Checks:** `training/.venv/bin/python -m unittest` passed (2 tests); `npm run check` passed (TypeScript, 57 tests, production build); `git diff --check` passed.
+- **Limit / next:** The new objective has not been trained or visually evaluated. No inference service or app still-preview flow is connected. Next run a bounded training/evaluation comparison and keep the app gated until held-out samples pass visual review.
+
+## 2026-11-09 — Reduce live tracking latency and clarify sizing limits
+
+- **Goal:** Address the screenshot's sluggish tracking and oversized-looking overlay without suggesting that the illustrative mesh provides physical garment sizing.
+- **Changed:** Camera capture now requests no more than 640×480 to reduce synchronous pose/segmentation workload; debug telemetry calls its measurement “tracking FPS” instead of “FPS”. Updated SDD camera input contract.
+- **Checks:** `npm run check` passed (TypeScript, 57 tests, production build); `git diff --check` passed.
+- **Limit:** No live camera session was started. The app has no physical garment dimensions or user measurements, so its body-relative mesh cannot verify actual garment size; visual fit still needs live review.
+
+## 2026-11-09 — Integrate dataset and scratch-training pilot
+
+- **Goal:** Proceed with the realistic still-preview direction after the user confirmed commercial rights for Glance VTON Synthetic Pairs.
+- **Changed:** Added `training/pyproject.toml`, `uv.lock`, `model.py`, `data.py`, `train.py`, `evaluate.py`, `test_model.py`, and `README.md`; ignored local environment/data/checkpoint outputs; updated README, PRD, product brief, ADR, SDD, security, feasibility, and live-preview copy. The app still does not call a generated model.
+- **Checks:** `training/.venv/bin/python -m unittest` passed (1 test); `npm run check` passed (TypeScript, 57 Vitest tests, production build); `git diff --check` passed. Confirmed no training/evaluation process remains running.
+- **Runs:** 6,000 scratch-initialized steps at 128×96 on MPS; 32 synthetic test rows gave masked MAE 0.0631 and whole-image MAE 0.0357. The preview remained blurry. A 1,000-step 256×192 pilot also remained blurry (32 rows; masked MAE 0.1074). A later 256×192 run reached 4,000 reported steps, then remote shard transfer stalled; it was stopped without saving.
+- **Limit / next:** No user imagery used. Dataset split person/garment disjointness is unverified. Do not integrate the checkpoint into the app until garment detail and human realism improve; next improve architecture and stream reliability, then repeat held-out visual review.
+
+## 2026-11-09 — Clarify that the live mesh is illustrative
+
+- **Goal:** Avoid describing the current live overlay as a realistic garment fit while the generated still-preview model remains blocked on data rights.
+- **Changed:** Updated `src/App.tsx` status labels from “2D body contour fit” / “garment fit to wearer contours” / “Body-wrapped” to explicitly describe illustrative overlay tracking and mesh alignment.
+- **Checks:** `git diff --check` only; this was a copy-only change. No tests or camera session run.
+- **Limit:** No still generator or inference service is integrated. The current live renderer still cannot remove existing clothes or reconstruct fabric.
+
+## 2026-11-09 — Continue realistic still-preview feasibility
+
+- **Goal:** Proceed toward replacing the illustrative live mesh with a generated image of the user wearing the selected garment, following the accepted from-scratch/local-processing direction.
+- **Changed:** Screened the Glance VTON Synthetic Pairs card as a new structurally relevant dataset lead and checked the current host. Recorded the lead and its rights caveat in `docs/TRY_ON_FEASIBILITY.md` and `docs/context/decisions.md`.
+- **Evidence:** Dataset card lists 12,506 men's upperwear training pairs, 2,032 test pairs, 19.6 GB total, and CC-BY-4.0, while stating generation used FLUX.1 [dev]. Current official FLUX [dev] terms are non-commercial absent a separate grant. Host is Apple M5/16 GB with 40 GB free disk; system Python has no PyTorch. Apple documents MPS support, but local training feasibility is unmeasured.
+- **Checks:** Read-only web/source review and local hardware/environment inspection; no media, dataset, packages, or model weights downloaded or installed. `git diff --check` pending.
+- **Next:** Obtain written confirmation that commercial model training on this dataset's generated images and resulting weights is permitted. Then run a bounded random-initialized low-resolution MPS feasibility pilot in an isolated environment; otherwise source/commission a cleared paired set.
+- **Limit:** No realistic generation code or output was produced; the current Canvas overlay remains illustrative.
+
+## 2026-11-09 — Align the uploaded collar with the body neck anchor
+
+- **Goal:** Correct the visible collar/neckline offset while preserving the shoulder and sleeve tracking.
+- **Changed:** Routed the detected garment neckline through both `mapGarmentBoneSkinPoint` and the Canvas 2D mesh renderer. The source neckline now maps to the body's normalized neck anchor (`v=0.08`); off-center source collars are translated to the torso center. Added a regression that exercises the active mesh builder.
+- **Checks:** The regression failed before the fix (67.76 px vertical mismatch) and passed afterward. `npm run check` passed with 57 tests and production build; `git diff --check` passed.
+- **Limit:** No live webcam retest was performed in this turn; current permission was not renewed. The fix aligns the collar anchor but does not create cloth simulation or photographic garment replacement.
+
+## 2026-11-09 — Anatomical acromion seating, smooth sleeve adduction tuck, and realistic shoulder drape
+
+- **Goal:** Fix the boxy peaked Minecraft shoulder pads, floating shoulder wings, and angular arm-raise hump seen in `media_1794220047457_0b1b2b19.jpg` and `media_1794220026579_a2de7129.jpg`, and resolve resting arm chest folding so the polo shirt wears naturally, realistically, and comfortably on the user's anatomy.
+- **Changed:** Updated `src/lib/garment.ts`:
+  - Seated outer shoulder seams directly at the user's acromion joints (`0.50–0.53 × shoulderWidth`) rather than allowing segmentation bounds to push seams out to `0.67 W`.
+  - Adjusted `measuredDrop` in `torsoPoint` to properly account for spine progression, pulling the shoulder seam down snugly onto the shoulder contour ($\le 222$ px) and removing the flat boxy floating roof.
+  - Symmetrized torso seam bounds and silhouette profiles about placket center, ensuring left and right sleeves track identical resting angles within $0.01^\circ$.
+  - Implemented smooth graduated adduction weights across columns 2 to 5 ($w = 1.0 \to 0.70 \to 0.35 \to 0$ at seam), eliminating underarm cell compression and preventing fabric from folding into the chest when arms rest at the sides ($8^\circ$).
+- **Checks:** `npm run check` passed (`tsc -b --pretty false`, `vitest --run` with all 56/56 passing tests across 5 test files, and `vite build`); `git diff --check` passed. No camera frames or landmarks were logged, stored, or transmitted.
+- **Next:** User visual verification of the realistic polo overlay in live webcam try-on across resting, raised, and moving arm postures.
+
+## 2026-11-09 — Inversion-free underarm-split sleeve articulation, torso width containment, edge decontamination, and single-pass joint filtering
+
+- **Goal:** Eliminate visible mesh triangle inversions across the full supported pose range (`-45°` to `170°` arm angles, `180/300/450 px` shoulder widths, `-20°/0°/+20°` roll, independent arm / shoulder-top offsets), fix the severed sleeve gap (`media_1794217146564_da2754f9.jpg`), prevent the shirt torso from stretching over hanging arms, stop sleeve cuff tearing/kinking, remove light background edge fringes and collar-top spikes, and eliminate double joint-smoothing lag.
+- **Changed:** Updated `src/lib/garment.ts`, `src/App.tsx`, and `src/lib/garment.test.ts`:
+  - Replaced skipped split columns with continuous monotonic column distribution and Linear Blend Skinning (LBS) across the armhole seam. All quads across the armscye are drawn without voids.
+  - Dynamically detect `armpitV` from silhouette profile lookups (`bottomV` at `uLeft`/`uRight`) so the blended armhole seam accurately spans from shoulder top to armpit (~0.53) rather than an arbitrary 0.32 cutoff.
+  - Symmetrical Linear Blend Skinning ensures both sleeves track upper-arm elevation identically while remaining attached to the ribcage without triangle inversions across -45° to 170° abduction/elevation.
+  - Lowered `topSpine` to `0.28 × shoulderWidth` and aligned `defaultDrop` (`0.24 × shoulderWidth`) to human trapezius slope, resting outer seams directly on acromion landmarks (`sl`/`sr`) to eliminate boxy 90s peaked shoulder pads.
+  - Anchored collar notch and band to base of throat without sinking into chest or cutting into the neck.
+  - Clamped `topV` (`bakedShoulderSlopeV`), `segColTopY` (`trapDrop`), and waist taper to the torso span `[uLeft, uRight]` so flat-lay sleeves are not kinked or capped before rotation.
+  - Narrowed default and segmentation-adapted torso half-widths (`~0.49–0.54 × shoulderWidth`) so the shirt body stays on the torso inside hanging arms rather than covering the arms.
+  - Added outer-boundary color decontamination and alpha feathering in `removePlainBackgroundPixels`, extended `neckOpening.topV` to `0` to remove top collar spikes, and reduced `drawTriangle` clip expansion from `0.85 px` to `0.35 px`.
+  - Replaced the two redundant `smoothGarmentPlacement` passes on already-filtered landmarks in `src/App.tsx` with `blendBodyMeasurements` so tracked joints pass through without extra filter lag while segmentation contours remain smoothed.
+- **Checks:** `npm run check` passed (`tsc -b --pretty false`, `vitest --run` with 56/56 passing tests across 5 files including the 396-case symmetric sweep, 180-case independent-arm/offset sweep, sleeve angle tracking, 100% source silhouette coverage, and `blendBodyMeasurements`, plus `vite build`); `git diff --check` passed. No camera was activated during this verification.
+- **Next:** Visually evaluate the updated 2D polo overlay in a centered, front-facing live session across resting and raised arm poses.
+
 ## 2026-11-08 — Review and prepare try-on changes for PR
 
 - **Goal:** Review the accumulated 2D and optional GLB try-on work, group it into reviewable commits, and deliver it through a reviewed PR.
@@ -173,3 +272,51 @@
 - **Checks:** `npm run check` passed (TypeScript, 3 unit checks, build); `npm audit --audit-level=high` reported 0 vulnerabilities; camera flow was visually checked locally after one-time user permission and stopped cleanly; Semgrep security scan had 0 findings on the tracked app files.
 - **Next:** Create the requested private GitHub repository and verify PR-only branch protection after pushing the feature branch and opening a PR. Device/browser matrix and commercial license review remain release work.
 
+## 2026-11-09 — Remove local photo-generation experiment
+
+- At user request, stopped its loopback service and removed isolated runtime, model weights, dedicated package caches, app controls, proxy, startup command, and experiment documentation. Preserved original Downloads garment and unrelated 2D changes.
+- Verified port 8765 has no listener; typecheck, 50 tests, build and diff checks pass. Shared Python tooling/dependency caches remain untouched.
+
+## 2026-11-09 — Stabilize source sleeve attachment
+
+- Screenshot shows pointed sleeves and distorted fabric. Traced the shared 2D map: per-row source torso widths moved the sleeve seam across rows; postrotation x clamping further compressed sleeve vertices.
+- Sample the source torso width below sleeves consistently, bound segmented shoulder drop to 0.32 shoulder widths, and remove postrotation sleeve squeezing. Preserve existing pose tracking, original polo and local media boundaries.
+- Added texture-column alignment regression. Live visual acceptance remains pending; no claim of clothing replacement or realistic cloth simulation.
+
+## 2026-11-09 — Review try-on edge coverage and model feasibility
+
+- **Goal:** Diagnose why the polo preview still does not look like the user is wearing it and inspect what the reported edge coverage proves.
+- **Changed:** Added screenshot/code findings and current upstream local-model/license limits to `docs/TRY_ON_FEASIBILITY.md`; recorded that source-mask containment is not body-fit acceptance in `docs/context/lessons.md`.
+- **Checks:** Re-read active Canvas renderer and feasibility brief; reviewed camera-off comparison screenshot; checked official FASHN, parser/SegFormer, CatV2TON and LiveVVT project/license information. No camera started; no model or weights downloaded.
+- **Result:** No current mesh edit can deliver clothing removal and fabric reconstruction. Current local, commercial-capable, live-model gate remains unpassed; preserve mesh as illustrative until a compatible pipeline is available or accepted constraints change.
+
+## 2026-11-09 — Accept local still-preview direction and preserve license gate
+
+- **Goal:** Record the user's chosen direction after edge review.
+- **Changed:** Updated product/PRD, ADR, SDD, security, feasibility and context docs to specify one user-triggered still preview, browser-to-`127.0.0.1` transfer on the same device only, and no image persistence. Existing live preview remains illustrative.
+- **Checks:** Confirmed official FASHN parser license/inference behavior, Leffa model-card and training-data licensing, and current lack of a complete candidate; `git diff --check` passed. No model was downloaded or run.
+- **Blocker:** User chose to wait for a fully commercially cleared model/pipeline. No inference endpoint or model has been added, installed, or run.
+
+## 2026-11-09 — Specify from-scratch training and quality gates
+
+- **Goal:** Reconcile the user's newest direction: no pretrained VTON generator, retain MediaPipe helpers, train a new still generator with rights-cleared consented data, and measure quality by separate criteria.
+- **Changed:** Updated product/PRD, ADR, SDD, security and feasibility docs with paired-data schema, opt-in-only collection, split-by-person/garment evaluation, component metrics, and local training-compute gate. Recorded that “99% accuracy” is not a valid single realism metric.
+- **Checks:** Read current app/model imports and project requirements; reviewed official VITON-HD/DressCode/FIT terms and CatVTON training resource report. No dataset/model downloaded; no user images used. `git diff --check` pending.
+- **Blockers:** No paired training set or training budget/environment exists. No model or app code changed.
+
+
+## 2026-11-09 — Screen new commercial-use dataset lead
+
+- **Goal:** Continue sourcing rights-cleared and consented data for a from-scratch try-on generator.
+- **Changed:** Reviewed Garments2Look and aRTF Clothes from official project/dataset pages. Recorded Garments2Look as a rights-unclear, large outfit-level lead; recorded aRTF as auxiliary garment-scene data that does not provide try-on triples.
+- **Checks:** Read official GitHub/Hugging Face dataset cards, repository license notes, and dataset structure. No archives downloaded; no images or model weights accessed. `git diff --check` pending.
+- **Blocker:** Written confirmation is needed for Garments2Look's underlying source images, depicted people, commercial training, and resulting weights. No cleared paired set or approved collection process exists.
+
+
+## 2026-11-09 — Upgrade MediaPipe pose model tier
+
+- **Goal:** Improve shoulder, torso, and limb landmark estimates used by the live garment renderer.
+- **Changed:** Switched the existing MediaPipe Pose Landmarker asset from Lite to Full; retained on-device execution, one-person tracking, thresholds, and segmentation model. Updated SDD model provenance.
+- **Evidence:** Google’s published BlazePose evaluation reports better PCK for Full than Lite; its reference-device timing is not a FitCheck/M5 result.
+- **Checks:** Inspected the local Tasks Vision typings and official model guide. No tests or local camera check run. `git diff --check` pending.
+- **Next:** Verify the Full model downloads and initializes on the user's browser/device, then compare shoulder/elbow placement and total frame latency under the same camera/framing conditions.

@@ -1,70 +1,30 @@
-# Security and Privacy Model
+# Security and Privacy
 
-The 2026-11-07 [replacement-pipeline assessment](TRY_ON_FEASIBILITY.md) permits evaluating browser or same-computer inference. No local service has been integrated; the browser-only controls below still describe current media handling. Remote inference and persistent user imagery remain outside the agreed scope. A future local-service data flow must be reviewed before integration, including loopback access, allowed origins, cancellation, and media lifetime.
-
-**Status:** design requirements for the MVP. Controls below are planned until verified in the implementation.
-
-## Scope and protected data
-
-FitCheck accepts a shopper-selected garment image and requests access to a live camera stream to render a visual try-on. The agreed design processes both inputs in the browser and does not upload or persist either image or video. No account, retailer API, checkout, or arbitrary-site access is in the MVP.
-
-Treat both inputs as sensitive even though the selected garment image is usually public product imagery: a shopper can select the wrong file, and camera frames can reveal identity, surroundings, or other people. Protect user control over camera access, prevent active image content from executing, and avoid leaking imagery through logs, analytics, network requests, or saved artifacts.
-
-## Trust boundaries and data flow
+## Data flow
 
 ```text
-Shopper file picker ── raster garment image ──┐
-                                              ├─> browser decode / pose tracking / canvas preview
-Shopper camera ── permissioned MediaStream ───┘                  │
-                                                                  └─> display only
+Local garment file ──> browser ── reference image + prompt ──┐
+                                                            ├─> Decart Lucy 2.6
+Camera (explicit start) ──> browser ── realtime WebRTC video ┘       │
+Browser <──────────── transformed remote video stream ───────────────┘
+
+Browser ── same-origin token request ──> local Vite middleware ── permanent key ──> Decart token API
 ```
 
-The browser, its same-origin application code, the hosting origin, package/model delivery sources, and the operating system camera are separate trust boundaries. A compromised application origin or dependency could access the stream while permission is active; client-side processing alone does not protect against malicious JavaScript.
+Camera video and garment images leave the browser and are processed by Decart during a session. FitCheck does not save media to disk or send it to its own image-processing server. Decart's published [API terms](https://docs.platform.decart.ai/resources/api-terms) grant rights to use inputs and outputs to operate and improve/train its services and say inputs/outputs are not confidential. The terms limit API use to business and professional purposes, not personal or household consumer use. The UI discloses the data flow and use terms before Start; users should not submit sensitive imagery or content they lack rights to provide.
 
-## Required controls
+## Controls in this prototype
 
-### Camera and user imagery
+- Camera access begins only after the explicit Start action. Audio is disabled.
+- The Stop action disconnects the Decart realtime client and stops every local media track. Failures and unmount also clean up resources.
+- Garment type and encoded size are checked in the browser (PNG/JPEG/WebP, max 10 MiB). It decodes locally, enforces 4096×4096 dimensions, and re-encodes to WebP before the reference image leaves the page. Temporary object URLs are revoked when replaced or unmounted.
+- The permanent `DECART_API_KEY` stays in the Vite server process. Never rename it to `VITE_DECART_API_KEY`, place it in client code, or commit `.env`.
+- The local token endpoint requires POST, an exact same-origin loopback request, a custom header, and compatible Fetch Metadata; it has no CORS allowance, is rate-limited, and returns no-store responses.
+- Tokens are limited to Lucy 2.6, the requesting origin, and a 10-minute maximum session. The SDK fetches fresh tokens when connecting/reconnecting.
+- FitCheck does not log camera/garment bytes or persist generated media. Provider usage/account metadata may be visible to Decart under its terms.
 
-- Request camera access only after the shopper activates **Start camera**; explain its purpose before the browser prompt.
-- Use `getUserMedia` on HTTPS (localhost for development), request video only, and never request audio.
-- Stop every `MediaStreamTrack` when the shopper stops the camera, leaves the try-on view, or the component is disposed. A visible active-camera state and a clear stop control are required.
-- Keep frames in memory for the live preview. Do not send them to a backend, analytics, crash-reporting service, or third-party API; do not save screenshots or retain frames after stopping.
-- Keep pose results and garment compositing in browser memory; release each pose result after rendering.
-- On permission denial or missing hardware, explain the state and recovery path. Never retry permission prompts in a loop.
+## Deployment and residual risks
 
-### Uploaded garment files
+The endpoint runs only in Vite's local development/preview server. Do not expose the Vite server to a network or deploy the static build as if it included a secure token API. Production requires a separate backend/serverless implementation, HTTPS, origin controls, user authentication or equivalent abuse prevention, per-user/session usage limits, secret management, and review of current Decart terms, privacy notices, jurisdictional requirements, and pricing. Decart may retain/use submitted media under its current terms; FitCheck cannot enforce provider retention or training choices.
 
-- Accept only explicitly supported raster formats (PNG, JPEG, and WebP up to 10 MiB / 4096×4096) or self-contained binary glTF 2.0 models (`.glb` up to 15 MiB); reject SVG, HTML, unknown formats, external GLB buffer/image URIs, more than 64 GLB texture entries, and models whose combined unique image/sampler variants exceed 4096 × 4096 decoded pixels before parsing.
-- Validate declared type and decoded type, plus maximum file size and image dimensions, before allocating a large canvas or processing pixels. Show a useful error and allow replacement.
-- Decode locally, downscale to a bounded working size, and release object URLs, image bitmaps, and temporary canvas resources when the item is replaced or cleared.
-- Treat filenames and image metadata as untrusted. Do not render filenames as HTML, fetch embedded URLs, or execute image-provided content.
-- Use transparent cut-out imagery for the MVP. Do not silently upload an image to a background-removal service.
-
-### Web code, models, and dependencies
-
-- Avoid raw HTML injection and dynamic code evaluation. Render user-controlled labels as text.
-- Pin dependencies with a committed lockfile and audit dependency changes in CI. Review licensing and provenance for model files and non-code assets independently from package licenses.
-- Prefer serving pose runtime/model files from the same controlled origin. If a CDN is introduced, pin exact versions, document the provider request, and use integrity controls where supported. The CDN must never receive camera or garment bytes.
-- Use a restrictive Content Security Policy compatible with the app; limit `connect-src`, `img-src`, `media-src`, and `script-src` to required origins. Do not enable broad wildcard CORS or third-party script injection.
-- Do not include camera frames, garment data, image-derived identifiers, blob URLs, or personal content in logs or telemetry.
-
-## Abuse and resource limits
-
-The MVP has no server upload endpoint, so its primary abuse risks are malicious image files, browser memory/CPU exhaustion, and dependency compromise. Enforce file-size/dimension limits and bound canvas/model work. Avoid processing more camera frames concurrently than the browser can handle; drop stale frames rather than queueing without limit. Fail closed to a no-preview state when decoding or tracking fails.
-
-## User-facing accuracy and consent
-
-Label the output a **style preview**, not a fit, size, fabric, or purchase guarantee. Do not infer or store body measurements. Camera use must remain optional; the app must explain that denying access leaves the live preview unavailable while still allowing the shopper to remove the garment or leave the page.
-
-## Future browser extension boundary
-
-Automatic detection on arbitrary shops is explicitly out of scope. If added later, request the narrowest host access possible and only after clear user action; prefer a user-invoked current-tab action over persistent all-site access. Read only the selected product image needed for preview, explain when cross-origin image access is unavailable, and keep the extracted image local. Do not scrape pages in the background, collect browsing history, inject remote code, or transmit page/user imagery. Reassess permissions, privacy notices, store policies, and extension-store rules before implementation.
-
-## Residual risks and review checklist
-
-- A compromised same-origin deployment or dependency can still observe the camera stream after permission is granted.
-- Camera quality, lighting, pose, occlusion, and garment image quality can make alignment poor; pose alignment is not evidence of real-world fit.
-- A selected product photo may contain a model, background, watermark, or protected image. MVP support is limited to suitable garment cut-outs, and shoppers must have rights to use the image.
-- Browser permission behavior, HTTPS deployment, CSP, dependency/model provenance, and network requests require verification against the final implementation and deployment.
-
-Before release, verify camera denial/start/stop/unmount behavior, confirm no image/video payload leaves the browser, test malformed/oversized raster files and SVG rejection, review production CSP and asset origins, run dependency auditing, and check that logs/analytics contain no image data. These are acceptance checks, not claims that they have already passed.
+The image is re-encoded locally to prevent active source bytes from being sent, though browser decoder differences remain a residual risk. Production must add stronger file/resource and session abuse controls. Model output can be inaccurate and is not a fit or sizing measurement.
