@@ -1,25 +1,34 @@
 # FitCheck
 
-FitCheck is a browser-first virtual try-on widget. A shopper uploads a clothing product image from any retailer, grants camera access, and previews the garment over their live webcam view.
+FitCheck is a local-development web app for live AI clothing previews with Decart Lucy 2.6. After the shopper selects a garment and starts the camera, the browser streams camera video to Decart over WebRTC and sends the garment image and outfit prompt as reference input.
 
-## MVP scope
+## Run locally
 
-- React, TypeScript, and Vite web app with a Pinterest-style lookbook board (`+ Try-On` cards) and a floating, draggable `Try-On + FitCheck` mirror window with a head-and-shoulders `"Step back"` framing silhouette.
-- Dual local rendering engines: **Canvas 2D** (mesh warping with elbow-driven sleeve articulation) for uploaded raster garments and **Three.js 3D WebGL** for `.glTF / .GLB` garment models.
-- Foreground occlusion using MediaPipe `ImageSegmenter` (`selfie_multiclass_256x256`) so hands, crossed bare forearms (for short-sleeved items), and head/hair appear in front of the garment.
-- Product image upload (PNG, JPEG, WebP) and binary `.glb` 3D model upload (validated locally with external-URI rejection); no retailer account, WebRTC server, or WebSocket backend required.
-- Local-first handling of camera frames and uploaded assets.
-- A visual style preview only. It does not predict size, fit, fabric behavior, or purchase outcome.
+Requirements: Node.js 22.12 or newer and a Decart API key.
 
-The prototype is designed around a cut-out garment image (transparent background) and supported upper-body garments. Arbitrary product photos may need background cleanup before they align cleanly. A browser extension that reads arbitrary shop pages, a production catalog integration, accounts, checkout, and server-side image processing are out of scope for this MVP.
+1. Put your permanent key in the root `.env` file as `DECART_API_KEY=...`. `.env` is ignored by Git; never use a `VITE_` prefix or put the key in browser code.
+2. Install dependencies with `npm install`.
+3. Run `npm run dev` and open the local URL Vite prints.
+4. Select a PNG, JPEG, or WebP garment image (up to 10 MiB and 4096×4096 pixels), review the data notice, and choose **Start virtual try-on** to grant camera access and connect.
 
-## Status
+The Vite development server also exposes `/api/realtime-token`. It mints 60-second tokens limited to Lucy 2.6, the requesting local origin, and a 10-minute session. The permanent key stays in the server process. Do not expose the dev server to a network.
 
-The user-confirmed target now includes replacing existing clothing, sleeve articulation, foreground hand/arm occlusion, flat-lay and model-worn garment inputs, 3–5-second preparation, and 24–30 FPS with local processing. The current overlay does not meet that contract. The [feasibility assessment](docs/TRY_ON_FEASIBILITY.md) records the accepted brief, reviewed candidates, and the unpassed implementation-selection gate.
+If the app reports that the local token route is missing, stop the older Vite process and restart `npm run dev`; open the exact URL printed by the new server. Vite can choose another port when the old one is still occupied.
 
-The product brief is in [docs/PRODUCT_BRIEF.md](docs/PRODUCT_BRIEF.md). Product, architecture, implementation, CI, privacy, and agent workflow documents are being developed alongside the first vertical slice.
+## Data and privacy
 
-## License and asset notes
+Camera video and garment images are sent to Decart while a realtime session is active. The browser requests video only, after a deliberate start action; stopping the session disconnects Lucy and stops all camera tracks. FitCheck does not save media locally or run its own image server. Decart's currently published [API terms](https://docs.platform.decart.ai/resources/api-terms) permit submitted inputs and outputs to be used to operate and improve/train its services and limit API use to business and professional purposes. This local prototype is not cleared for consumer deployment. Users should not submit sensitive imagery or images they do not have rights to submit.
 
-The upstream webcam demo in the parent task was reviewed and cloned only as an isolated reference under the task workspace `work/Drakit-Try-On-reference`; FitCheck does not import its code or garment imagery. Its repo is MIT, but its two shop garment photos are not included and are not licensed by that repo. Review code, model, and asset licenses independently before commercial deployment.
+For production use, deploy a server-side token endpoint with authentication/abuse controls appropriate to the app, restrict token model and origin, configure the permanent key as a server secret, and publish an accurate privacy notice. A static Vite build alone does not include the token endpoint. Read [Security](docs/SECURITY.md) before deployment.
 
+## Product limits
+
+Lucy 2.6 supports realtime video editing, reference images, and virtual try-on prompts. Decart identifies Lucy VTON as its dedicated optimized virtual try-on model; FitCheck currently uses Lucy 2.6 per the selected product direction. The generated result is a visual style preview, not a fit, size, fabric, or purchase guarantee. Camera access, network quality, framing, and input image quality affect results.
+
+## Checks
+
+- `npm run typecheck`
+- `npm test -- --run`
+- `npm run build`
+
+See [Product brief](docs/PRODUCT_BRIEF.md), [PRD](docs/PRD.md), [architecture](docs/ARD.md), [implementation](docs/SDD.md), and [security/privacy](docs/SECURITY.md).

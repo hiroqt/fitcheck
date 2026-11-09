@@ -6,10 +6,10 @@ Build and maintain FitCheck as a privacy-first live clothing style preview. Read
 
 ## Non-negotiable boundaries
 
-- Keep webcam frames and uploaded garment pixels in the browser for MVP; never log, upload, persist, or transmit them.
+- Keep webcam frames and uploaded garment pixels in the browser for validation and preparation. For the accepted Lucy 2.6 MVP, after the user starts a session and sees the provider data-use notice, send the video-only camera stream and prepared garment reference directly to Decart; never log or persist either. The local token route must not receive media.
 - Request camera access only after explicit user action; stop all media tracks on stop, unmount, and failure.
 - The preview is illustrative. Do not add fit, size, material, or purchase guarantees.
-- Do not add retailer scraping, broad browser permissions, accounts, checkout, or remote image inference without an accepted scope/architecture review.
+- Do not add retailer scraping, broad browser permissions, accounts, checkout, or remote media providers beyond the accepted Decart integration without an accepted scope/architecture review.
 - Verify commercial permissions for each dependency, model, model checkpoint, and asset independently; repository license labels are not enough.
 - Do not add credentials or user imagery to source, fixtures, tests, or context notes.
 - Do not weaken CI, GitHub/GitLab main protections, or security checks to make a change pass.

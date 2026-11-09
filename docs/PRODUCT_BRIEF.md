@@ -1,43 +1,38 @@
 # FitCheck Product Brief
 
-**Scope update, 2026-11-07:** The user has specified a worn-garment experience with articulated sleeves, hand/forearm occlusion, replacement of existing clothing, both flat-lay and model-worn inputs, local processing, 3–5-second preparation, and 24–30 FPS. See the [accepted brief and feasibility gate](TRY_ON_FEASIBILITY.md). The sections below describe the existing overlay prototype; they do not establish that the revised requirements are implemented. The new pipeline has not passed feasibility selection.
+**Direction update, 2026-11-09:** The app now targets live garment previews through Decart Lucy 2.6. This replaces the local browser overlay and from-scratch still-generation direction. The app is a local-development prototype for business/professional evaluation; its current provider terms do not clear consumer deployment. Production hosting and privacy disclosures must be reviewed before release.
 
-## Problem
+## User and outcome
 
-Online shoppers often cannot picture a clothing item on their own body. Retailer product photos show garments on models, and product selection spans many sites.
+Shoppers want to see a selected clothing item on themselves in a live camera preview. FitCheck lets a shopper select one garment image, optionally describe the desired look, grant camera permission, and receive Lucy 2.6's transformed realtime stream.
 
-## Outcome
+## Product behavior
 
-Let a shopper bring a garment image from any shop into a simple try-on experience and see a live, pose-aligned visual preview using their webcam.
+- One garment image at a time: PNG, JPEG, or WebP up to 10 MiB.
+- Camera starts only after the shopper selects **Start virtual try-on**; FitCheck requests video without audio.
+- Lucy 2.6 receives the camera stream and the selected garment image/prompt. The returned remote stream is shown in the preview.
+- The garment can be changed or removed during a session; the user can apply an updated prompt or stop the session.
+- Stop, connection failure, or unmount disconnects the realtime client and stops all camera tracks.
+- Output is an illustrative style preview, not a size, fit, material, or purchase guarantee.
 
-## Agreed decisions
+## Data and trust
 
-- Platform-agnostic input: the shopper uploads or selects the chosen garment image. The MVP does not scrape shop pages or require a retailer API.
-- Try-on mode: live webcam preview.
-- Privacy: process camera frames in the browser; do not upload or persist user imagery.
-- Commercial intent: keep the implementation and chosen assets/dependencies compatible with possible commercial use.
-- Trust: describe the result as a style preview, not a size or fit guarantee.
+This app sends live camera video and the selected garment image to Decart during a session. The API key remains on the token-minting server; the browser receives a short-lived token limited to Lucy 2.6, the current origin, and a maximum session duration. Decart's published API terms state that it may use inputs and outputs to operate and improve/train its services. The UI must explain this before the user starts. See [Security and privacy](SECURITY.md).
 
-## MVP boundaries
+The current token endpoint runs only in Vite's local development/preview server. Static production hosting is not supported until a reviewed server endpoint and deployment configuration exist.
 
-- A responsive web application with one garment preview at a time.
-- Initially supports upper-body garment overlays using transparent/cut-out garment imagery.
-- Camera start/stop, garment replacement/removal, search/filter over currently loaded local items when present, upload validation, and useful error states.
-- Browser-local pose alignment using shoulder and plausible hip landmarks, with a shoulder-based fallback when hips are outside the frame. Garments use thin-plate-spline control-point warping in 2D, with garment-alpha hem width informing lower torso controls; this remains illustrative and cannot simulate cloth, sleeve occlusion, or realistic folds.
+## Out of scope
 
-## Not in MVP
-
-- Automatic access to arbitrary retailer pages or a browser extension.
-- Retailer search/catalog API integrations, account creation, cart or checkout.
-- Measurement-based sizing or claims about fit, drape, or materials.
-- Server-side processing or long-term storage of user photos/video.
-- Autonomous policy/code edits as a self-improvement mechanism.
+- Retailer scraping, browser extensions, product catalogs, accounts, checkout, or payments.
+- Fit/size recommendations, body measurements, garment physics, or a guaranteed likeness.
+- Local model training, user image persistence, or FitCheck-owned media processing services.
+- Production deployment until the endpoint, key management, user disclosures, usage limits, and privacy terms are reviewed.
 
 ## Acceptance
 
-1. A shopper can open the web app and choose a permitted garment image from disk.
-2. With camera permission, the app shows the live preview and aligns the garment to detected upper-body landmarks.
-3. The shopper can change/remove the garment and stop the camera; denied camera permission and unsupported/invalid images have clear recovery paths.
-4. Camera frames and garment files remain local to the browser for the MVP.
-5. Documentation explains setup, supported imagery, privacy behavior, limitations, CI, and the human-reviewed improvement loop.
-
+1. Camera is not requested before the user starts a session.
+2. A supported garment image and prompt are passed to Lucy 2.6; its returned stream is displayed.
+3. Replacing the garment and applying a prompt updates the active session.
+4. Stop, errors, and unmount disconnect the provider and stop every camera track.
+5. The permanent key is never included in browser assets; local tokens are short-lived and scoped.
+6. UI and docs accurately disclose remote processing and provider terms.
