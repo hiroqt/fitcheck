@@ -1,5 +1,11 @@
 # Milestone Worklog
 
+## 2026-11-09 — Confirm Decart processing boundary
+
+- **Decision:** The user explicitly chose to keep Decart Lucy 2.6 after the local-only conflict was surfaced. The app sends video-only camera input and the prepared garment reference to Decart only after Start and the pre-start provider-terms notice.
+- **Changed:** Updated `AGENTS.md` to record this accepted provider-specific exception while retaining the no-logging/no-persistence boundary; updated the accepted decision source here.
+- **Next:** Run the repository checks, review the final diff, and deliver through a PR. Production hosting and live camera/WebRTC QA remain out of scope.
+
 ## 2026-11-09 — Review Lucy integration and prepare delivery
 
 - **Changed:** Added the remote-processing and provider-terms notice directly before Start, guarded delayed errors from stale sessions, and added four token-endpoint tests for origin checks, token scope, method/key rejection, and rate limiting.
